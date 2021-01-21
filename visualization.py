@@ -24,7 +24,7 @@ space_size = np.asarray((51.2, 58.2, 40.))
 spaceView = gl.GLViewWidget()
 spaceView.setCameraPosition(distance=np.max(space_size)*3)
 spaceView.pan(*space_size/2)
-# spaceView.setTitle('Visualisation')
+spaceView.setTitle('Visualisation')
 spaceView.setGeometry(0, 110, 1920, 1080)
 volume = gl.GLScatterPlotItem()
 
