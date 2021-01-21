@@ -14,9 +14,11 @@ class Modeling:
         self.source = source
         self.spacing = 0.01
         self.solid_angle = ((0, -1, 0), 10*np.pi/180)
+        self.save_name = 'System Matrix'
         self.args = [
             'spacing',
-            'solid_angle'
+            'solid_angle',
+            'save_name'
             ]
 
         for arg in self.args:
@@ -79,7 +81,7 @@ class Modeling:
         return data
 
     def save_data(self, data, name):
-        file = h5py.File(f'Output data/{self}', 'a')
+        file = h5py.File(f'Output data/{self.save_name}', 'a')
         if type(data) is dict:
             group = file.create_group(f'Flows/{name}')
             for key in data.keys():

@@ -39,7 +39,6 @@ source = Source(
     )
 
 modeling = Modeling(space, source)
-# modeling.source.timer = 15.5
-# print(modeling)
+modeling.source.timer = 30.
 modeling.start(60, 0.1)
 

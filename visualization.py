@@ -17,7 +17,7 @@ pg.mkQApp()
 # # sys.exit(app.exec())
 # spaceView = win.graphicsView
 
-name = '<modeling.Modeling object at 0x7f5e56de16a0>'
+name = '<modeling.Modeling object at 0x7f00b73cddf0>'
 
 space_size = np.asarray((51.2, 58.2, 40.))
 
@@ -68,19 +68,23 @@ phantom_volume = np.histogramdd(
 
 levels = [
     np.min(phantom_volume),
-    np.max(phantom_volume)/50
+    np.max(phantom_volume)*0.01
 ]
+
+zeros = np.nonzero(phantom_volume < levels[1]*0.1)
+phantom_volume[zeros] = np.NaN
+
 phantom_RGBA = []
 for slice in phantom_volume:
     rgba, alpha = makeRGBA(data=slice, levels=levels)
-    rgba[:, :, 3] = 5
+    rgba[:, :, 3] = rgba[:, :, 3]/20
     # indices = np.nonzero(rgba[:, :, 0] + rgba[:, :, 1] + rgba[:, :, 2])
     # rgba[indices[0], indices[1], 3] = 10
-    rgba[:, :, 3] = rgba[:, :, 3]*(rgba[:, :, 0]/255 + rgba[:, :, 1]/255 + rgba[:, :, 2]/255)
+    # rgba[:, :, 3] = rgba[:, :, 3]*(rgba[:, :, 0]/255 + rgba[:, :, 1]/255 + rgba[:, :, 2]/255)
     phantom_RGBA.append(rgba)
 phantom_RGBA = np.asarray(phantom_RGBA)
 phantom_volume = phantom_RGBA
-phantom_volume = gl.GLVolumeItem(phantom_volume, sliceDensity=2)
+phantom_volume = gl.GLVolumeItem(phantom_volume, sliceDensity=1)
 # phantom_volume.translate(0., 7., 0.)
 phantom_volume.scale(0.4, 0.4, 0.4, local=True)
 spaceView.addItem(phantom_volume)
