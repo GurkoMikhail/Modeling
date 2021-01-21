@@ -85,7 +85,7 @@ def updateImage():
     image.setImage(data)
     hist.setLevels(data.min(), data.max())
 
-inside = in_subject(0., 7.)
+inside = in_subject(0., 3.)
 coordinates = coordinates[inside]
 energy_transfer = energy_transfer[inside]
 emission_time = emission_time[inside]

@@ -17,14 +17,14 @@ pg.mkQApp()
 # # sys.exit(app.exec())
 # spaceView = win.graphicsView
 
-name = '<modeling.Modeling object at 0x7fbfe8304df0>'
+name = '<modeling.Modeling object at 0x7f5e56de16a0>'
 
 space_size = np.asarray((51.2, 58.2, 40.))
 
 spaceView = gl.GLViewWidget()
 spaceView.setCameraPosition(distance=np.max(space_size)*3)
 spaceView.pan(*space_size/2)
-spaceView.setTitle('Visualisation')
+# spaceView.setTitle('Visualisation')
 spaceView.setGeometry(0, 110, 1920, 1080)
 volume = gl.GLScatterPlotItem()
 
@@ -73,7 +73,7 @@ levels = [
 phantom_RGBA = []
 for slice in phantom_volume:
     rgba, alpha = makeRGBA(data=slice, levels=levels)
-    rgba[:, :, 3] = 1
+    rgba[:, :, 3] = 5
     # indices = np.nonzero(rgba[:, :, 0] + rgba[:, :, 1] + rgba[:, :, 2])
     # rgba[indices[0], indices[1], 3] = 10
     rgba[:, :, 3] = rgba[:, :, 3]*(rgba[:, :, 0]/255 + rgba[:, :, 1]/255 + rgba[:, :, 2]/255)
