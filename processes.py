@@ -19,12 +19,12 @@ class Interaction:
             if arg in kwds:
                 setattr(self, arg, kwds[arg])
 
-    def get_interaction_probability(self, travel_distance):
+    def probability(self, travel_distance):
         material = self.space.get_material(self.particles.coordinates)
         interaction_probability = materials.get_lac(material, self.particles.energy, self.processes)*travel_distance
         return interaction_probability
 
-    def choose_interaction(self, interaction_probability):
+    def choose(self, interaction_probability):
         indices = []
         rnd = self.rng_choose.random(interaction_probability[0].size)
         p0 = 0
@@ -37,9 +37,8 @@ class Interaction:
             p0 = p1
         return indices
 
-    def apply(self, travel_distance):
-        interaction_probability = self.get_interaction_probability(travel_distance)
-        interacted = self.choose_interaction(interaction_probability)
+    def apply(self, interaction_probability):
+        interacted = self.choose(interaction_probability)
         for i, process in enumerate(self.processes):
             self.data.append(process.apply(interacted[i]))
         

@@ -34,7 +34,7 @@ class Modeling:
 
             start = time()
             # print(f'Particles count = {self.particles.count}')
-            flow.out_of_solid_angle(*self.solid_angle)
+            flow.off_the_solid_angle(*self.solid_angle)
             # print(f'Particles count = {self.particles.count}')
             while flow.particles.count > 0:
                 # print(f'Particles count = {self.particles.count}')
@@ -109,11 +109,12 @@ class ParticleFlow:
         self.particles.delete(indices)
         return indices
 
-    def next_step(self, travel_distance):
-        self.particles.move(travel_distance)
+    def next_step(self, spacing):
         self.off_the_space()
-        self.interaction.apply(travel_distance)
+        interaction_probability = self.interaction.probability(spacing)
+        self.interaction.apply(interaction_probability)
         self.low_energy()
+        self.particles.move(spacing)
         self.step += 1
     
     def off_the_space(self):
@@ -127,7 +128,7 @@ class ParticleFlow:
         self.particles.delete(indices)
         return indices
 
-    def out_of_solid_angle(self, vector, angle):
+    def off_the_solid_angle(self, vector, angle):
         x = vector[0]*self.particles.direction[:, 0]
         y = vector[1]*self.particles.direction[:, 1]
         z = vector[2]*self.particles.direction[:, 2]
