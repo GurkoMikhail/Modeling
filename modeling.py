@@ -14,7 +14,7 @@ class Modeling:
         self.source = source
         self.spacing = 0.01
         self.solid_angle = ((0, -1, 0), 10*np.pi/180)
-        self.save_name = 'System Matrix'
+        self.save_name = 'Test'
         self.args = [
             'spacing',
             'solid_angle',
@@ -110,11 +110,12 @@ class ParticleFlow:
         return indices
 
     def next_step(self, spacing):
+        travel_distance = np.full(self.particles.count, spacing)
+        interacted = self.interaction.interacted_list(travel_distance)
+        self.particles.move(travel_distance)
+        self.interaction.apply(interacted)
         self.off_the_space()
-        interaction_probability = self.interaction.probability(spacing)
-        self.interaction.apply(interaction_probability)
         self.low_energy()
-        self.particles.move(spacing)
         self.step += 1
     
     def off_the_space(self):

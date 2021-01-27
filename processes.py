@@ -13,6 +13,7 @@ class Interaction:
             self.processes.append(processes[process](particles))
         self.data = []
         self.rng_choose = np.random.default_rng()
+        self.rng_free_path = np.random.default_rng()
         self.args = []
 
         for arg in self.args:
@@ -21,8 +22,9 @@ class Interaction:
 
     def probability(self, travel_distance):
         material = self.space.get_material(self.particles.coordinates)
-        interaction_probability = materials.get_lac(material, self.particles.energy, self.processes)*travel_distance
-        return interaction_probability
+        lac = materials.get_lac(material, self.particles.energy, self.processes)
+        probability = 1 - np.exp(-lac*travel_distance)
+        return probability
 
     def choose(self, interaction_probability):
         indices = []
@@ -37,10 +39,17 @@ class Interaction:
             p0 = p1
         return indices
 
-    def apply(self, interaction_probability):
+    def interacted_list(self, travel_distance):
+        interaction_probability = self.probability(travel_distance)
         interacted = self.choose(interaction_probability)
+        for indices in interacted:
+            travel_distance[indices] *= self.rng_free_path.random(indices.size)
+        return interacted
+
+    def apply(self, interacted):
         for i, process in enumerate(self.processes):
-            self.data.append(process.apply(interacted[i]))
+            indices = interacted[i]
+            self.data.append(process.apply(indices))
         
 
 class Process:

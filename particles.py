@@ -22,10 +22,10 @@ class Particles:
     def move(self, distance, indices=None):
         """ Переместить частицы """
         if indices is None:
-            self._coordinates += self._direction*distance
+            self._coordinates += self._direction*np.column_stack([distance]*3)
             self._distance_traveled += distance
         else:
-            self._coordinates[indices] += self._direction*distance
+            self._coordinates[indices] += self._direction[indices]*np.column_stack([distance]*3)
             self._distance_traveled[indices] += distance
 
     def rotate(self, theta, phi, indices):
