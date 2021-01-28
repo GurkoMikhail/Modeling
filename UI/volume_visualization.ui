@@ -14,38 +14,39 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="GLViewWidget" name="graphicsView_volume">
-    <property name="geometry">
-     <rect>
-      <x>6</x>
-      <y>6</y>
-      <width>256</width>
-      <height>192</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="GraphicsLayoutWidget" name="graphicsView_histogram">
-    <property name="geometry">
-     <rect>
-      <x>6</x>
-      <y>543</y>
-      <width>256</width>
-      <height>192</height>
-     </rect>
-    </property>
-   </widget>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="GLViewWidget" name="openGLWidget"/>
+    </item>
+    <item>
+     <widget class="GraphicsLayoutWidget" name="graphicsView">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>200</width>
+        <height>16777215</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+   </layout>
   </widget>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>GLViewWidget</class>
-   <extends>QGraphicsView</extends>
-   <header>pyqtgraph.opengl</header>
-  </customwidget>
-  <customwidget>
    <class>GraphicsLayoutWidget</class>
    <extends>QGraphicsView</extends>
    <header>pyqtgraph</header>
+  </customwidget>
+  <customwidget>
+   <class>GLViewWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>pyqtgraph.opengl</header>
   </customwidget>
  </customwidgets>
  <resources/>
