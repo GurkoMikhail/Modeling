@@ -211,7 +211,7 @@ class Source:
         return coordinates
 
     def generate_emission_time(self, n):
-        emission_time = self.rng_time.random(n, dtype=np.float32) + self.timer
+        emission_time = self.rng_time.random(n) + self.timer
         return emission_time
 
     def generate_directions(self, n):

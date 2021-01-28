@@ -104,7 +104,7 @@ class Photons(Particles):
 
     def __init__(self, energy, direction, coordinates, emission_time):
         super().__init__(energy, direction, coordinates)
-        self._emission_time = asarray32(emission_time)
+        self._emission_time = np.asarray(emission_time)
         self._emission_coordinates = np.copy(self.coordinates)
 
     def delete(self, indices):
