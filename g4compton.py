@@ -1,8 +1,8 @@
-from numba import vectorize, float64
+from numba import vectorize, float32
 from math import log, exp, sqrt, acos, pi, cos
 from random import random
 
-@vectorize([float64(float64)], nopython=True, cache=True)
+@vectorize([float32(float32)], nopython=True, cache=True)
 def generation_theta(energy):
     E0_m = energy/510998.9461
     eps0 = 1/(1 + 2*E0_m)
@@ -25,7 +25,7 @@ def generation_theta(energy):
     theta = acos(costheta)
     return theta
 
-@vectorize([float64(float64, float64, float64, float64)], nopython=True, cache=True)
+@vectorize([float32(float32, float32, float32, float32)], nopython=True, cache=True)
 def culculate_sigma(energy, Z, density, M):
     mec2 = 510998.9461          #eV
     re = 2.8179403267*10**(-13) #cm
@@ -42,7 +42,7 @@ def culculate_sigma(energy, Z, density, M):
     sigma /= M
     return sigma
 
-@vectorize([float64(float64, float64)], nopython=True, cache=True)
+@vectorize([float32(float32, float32)], nopython=True, cache=True)
 def culculate_energy_change(energy, theta):
     mec2 = 510998.9461          #eV
     k = energy/mec2

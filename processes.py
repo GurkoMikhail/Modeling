@@ -2,6 +2,10 @@ import numpy as np
 import materials
 from time import time
 
+def asarray32(array):
+    return np.asarray(array, dtype=np.float32)
+
+
 class Interaction:
     """ Класс взаимодействия """
 
@@ -22,13 +26,12 @@ class Interaction:
         return lac
 
     def get_free_path(self):
-        gamma = self.rng_free_path.random(self.particles.count)
-        free_path = -(1/self.max_lac)*np.log(gamma)
+        free_path = asarray32(self.rng_free_path.exponential(1/self.max_lac, self.particles.count))
         return free_path
 
     def choose(self, interaction_probability):
         indices = []
-        rnd = self.rng_choose.random(interaction_probability[0].size)
+        rnd = self.rng_choose.random(interaction_probability[0].size, dtype=np.float32)
         p0 = 0
         for p in interaction_probability:
             p1 = p0 + p
@@ -100,6 +103,10 @@ import g4compton
 class ComptonScattering(Process):
     """ Класс эффекта Комптона """
 
+    def __init__(self, particles, **kwds):
+        super().__init__(particles, **kwds)
+        self.rng_phi = np.random.default_rng()
+
     def get_theta(self, interacted):
         """ Получить угл рассеяния - theta """
         theta = g4compton.generation_theta(self.particles.energy[interacted])
@@ -107,7 +114,7 @@ class ComptonScattering(Process):
 
     def get_phi(self, interacted):
         """ Получить угл рассеяния - phi """
-        phi = np.pi*(np.random.random_sample(interacted.size)*2 - 1)
+        phi = np.pi*(self.rng_phi.random(interacted.size, dtype=np.float32)*2 - 1)
         return phi
 
     def culculate_energy_change(self, theta, interacted):

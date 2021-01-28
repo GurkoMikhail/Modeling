@@ -1,5 +1,8 @@
 import numpy as np
 
+def asarray32(array):
+    return np.asarray(array, dtype=np.float32)
+
 class Particles:
     """ 
     Класс частиц
@@ -14,9 +17,9 @@ class Particles:
     processes = []
 
     def __init__(self, energy, direction, coordinates):
-        self._energy = np.asarray(energy)
-        self._direction = np.asarray(direction)
-        self._coordinates = np.asarray(coordinates)
+        self._energy = asarray32(energy)
+        self._direction = asarray32(direction)
+        self._coordinates = asarray32(coordinates)
         self._distance_traveled = np.zeros_like(self._energy)
 
     def move(self, distance, indices=None):
@@ -101,7 +104,7 @@ class Photons(Particles):
 
     def __init__(self, energy, direction, coordinates, emission_time):
         super().__init__(energy, direction, coordinates)
-        self._emission_time = np.asarray(emission_time)
+        self._emission_time = asarray32(emission_time)
         self._emission_coordinates = np.copy(self.coordinates)
 
     def delete(self, indices):

@@ -1,6 +1,6 @@
 from numba import jit
 from numba.typed import List
-from numpy import array, load, unique, zeros, nonzero, interp
+from numpy import array, load, unique, zeros, nonzero, interp, float32
 
 mac_table = List([
     load('macs/Air, Dry (near sea level).npy'),      # 0 - Воздух
@@ -43,7 +43,7 @@ process_indices = {
 }
 
 def get_lac(material, energy, processes):
-    lac_out = zeros((len(processes), energy.size))
+    lac_out = zeros((len(processes), energy.size), dtype=float32)
     for m in unique(material):
         lac = lac_table[m]
         indices = nonzero(material == m)[0]

@@ -4,6 +4,10 @@ from processes import Interaction
 import h5py
 from time import time
 
+def asarray32(array):
+    return np.asarray(array, dtype=np.float32)
+
+
 class Modeling:
     """ 
     Основной класс моделирования
@@ -12,8 +16,8 @@ class Modeling:
     def __init__(self, space, source, **kwds):
         self.space = space
         self.source = source
-        self.solid_angle = ((0, -1, 0), 15*np.pi/180)
-        self.save_name = 'efg3'
+        self.solid_angle = ((0, -1, 0), 10*np.pi/180)
+        self.save_name = 'efg3 front projection'
         self.args = [
             'spacing',
             'solid_angle',
@@ -155,9 +159,10 @@ class Source:
     """
 
     def __init__(self, coordinates, activity, distribution, voxel_size=0.4, radiation_type='Gamma', energy=140.*10**3, half_life=6*60*60, **kwds):
-        self.coordinates = coordinates
-        self.initial_activity = activity
-        self.distribution = distribution/np.sum(distribution)
+        self.coordinates = asarray32(coordinates)
+        self.initial_activity = asarray32(activity)
+        self.distribution = asarray32(distribution)
+        self.distribution /= np.sum(self.distribution)
         self.particles_emitted = np.zeros_like(self.distribution)
         self.voxel_size = voxel_size
         self.radiation_type = radiation_type
@@ -183,7 +188,7 @@ class Source:
             for y in np.arange(self.coordinates[1], size[1], self.voxel_size):
                 for z in np.arange(self.coordinates[2], size[2], self.voxel_size):
                     coordinates_table.append([x, y, z])
-        coordinates_table = np.asarray(coordinates_table)
+        coordinates_table = asarray32(coordinates_table)
         return coordinates_table
 
     @property
@@ -206,12 +211,12 @@ class Source:
         return coordinates
 
     def generate_emission_time(self, n):
-        emission_time = self.rng_time.random(n) + self.timer
+        emission_time = self.rng_time.random(n, dtype=np.float32) + self.timer
         return emission_time
 
     def generate_directions(self, n):
-        a1 = self.rng_dist.random(n)
-        a2 = self.rng_dist.random(n)
+        a1 = self.rng_dir.random(n, dtype=np.float32)
+        a2 = self.rng_dir.random(n, dtype=np.float32)
         cos_alpha = 1 - 2*a1
         sq = np.sqrt(1 - cos_alpha**2)
         cos_beta = sq*np.cos(2*np.pi*a2)
@@ -220,7 +225,7 @@ class Source:
         return directions
 
     def generate_particles(self, n):
-        energies = np.full(n, self.energy)
+        energies = np.full(n, self.energy, dtype=np.float32)
         directions = self.generate_directions(n)
         coordinates = self.generate_coordinates(n)
         emission_time = self.generate_emission_time(n)
