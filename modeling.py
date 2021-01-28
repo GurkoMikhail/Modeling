@@ -12,9 +12,8 @@ class Modeling:
     def __init__(self, space, source, **kwds):
         self.space = space
         self.source = source
-        self.spacing = 0.01
-        self.solid_angle = ((0, -1, 0), 10*np.pi/180)
-        self.save_name = 'Test'
+        self.solid_angle = ((0, -1, 0), 15*np.pi/180)
+        self.save_name = 'efg3'
         self.args = [
             'spacing',
             'solid_angle',
@@ -36,10 +35,10 @@ class Modeling:
             # print(f'Particles count = {self.particles.count}')
             flow.off_the_solid_angle(*self.solid_angle)
             # print(f'Particles count = {self.particles.count}')
-            while flow.particles.count > 0:
+            while flow.particles.count:
                 # print(f'Particles count = {self.particles.count}')
                 # print(f'Distance traveled = {round(flow.particles.distance_traveled[0], 5)} sm')
-                flow.next_step(self.spacing)
+                flow.next_step()
             print(f'Finish! time left = {time() - start} s')
             print(f'Space left {flow.left_the_space} particles')
 
@@ -109,12 +108,11 @@ class ParticleFlow:
         self.particles.delete(indices)
         return indices
 
-    def next_step(self, spacing):
-        travel_distance = np.full(self.particles.count, spacing)
-        interacted = self.interaction.interacted_list(travel_distance)
-        self.particles.move(travel_distance)
-        self.interaction.apply(interacted)
+    def next_step(self):
+        free_path = self.interaction.get_free_path()
+        self.particles.move(free_path)
         self.off_the_space()
+        self.interaction.apply()
         self.low_energy()
         self.step += 1
     

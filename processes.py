@@ -12,19 +12,19 @@ class Interaction:
         for process in self.particles.processes:
             self.processes.append(processes[process](particles))
         self.data = []
+        self.max_lac = 1000
         self.rng_choose = np.random.default_rng()
         self.rng_free_path = np.random.default_rng()
-        self.args = []
 
-        for arg in self.args:
-            if arg in kwds:
-                setattr(self, arg, kwds[arg])
-
-    def probability(self, travel_distance):
+    def get_lac(self):
         material = self.space.get_material(self.particles.coordinates)
         lac = materials.get_lac(material, self.particles.energy, self.processes)
-        probability = 1 - np.exp(-lac*travel_distance)
-        return probability
+        return lac
+
+    def get_free_path(self):
+        gamma = self.rng_free_path.random(self.particles.count)
+        free_path = -(1/self.max_lac)*np.log(gamma)
+        return free_path
 
     def choose(self, interaction_probability):
         indices = []
@@ -38,18 +38,16 @@ class Interaction:
             indices.append(ind)
             p0 = p1
         return indices
-
-    def interacted_list(self, travel_distance):
-        interaction_probability = self.probability(travel_distance)
-        interacted = self.choose(interaction_probability)
-        for indices in interacted:
-            travel_distance[indices] *= self.rng_free_path.random(indices.size)
-        return interacted
-
-    def apply(self, interacted):
-        for i, process in enumerate(self.processes):
-            indices = interacted[i]
-            self.data.append(process.apply(indices))
+        
+    def apply(self):
+        if self.particles.count:
+            lac = self.get_lac()
+            self.max_lac = np.max(np.sum(lac, axis=0))
+            interaction_probability = lac/self.max_lac
+            interacted = self.choose(interaction_probability)
+            for i, process in enumerate(self.processes):
+                indices = interacted[i]
+                self.data.append(process.apply(indices))
         
 
 class Process:
