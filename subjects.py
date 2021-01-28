@@ -67,9 +67,9 @@ class Subject:
     def inside(self, coordinates):
         """ Список попавших внутрь объекта с преобразованием координат """
         self.convert_to_local_coordinates(coordinates)
-        in_x = (coordinates[:, 0] <= self.size[0])*(coordinates[:, 0] >=0)
-        in_y = (coordinates[:, 1] <= self.size[1])*(coordinates[:, 1] >=0)
-        in_z = (coordinates[:, 2] <= self.size[2])*(coordinates[:, 2] >=0)
+        in_x = (coordinates[:, 0] < self.size[0])*(coordinates[:, 0] > 0)
+        in_y = (coordinates[:, 1] < self.size[1])*(coordinates[:, 1] > 0)
+        in_z = (coordinates[:, 2] < self.size[2])*(coordinates[:, 2] > 0)
         indices = np.nonzero(in_x*in_y*in_z)[0]
         return indices
 
@@ -103,7 +103,7 @@ class Phantom(Subject):
 
     def get_material_indices(self, coordinates):
         coordinates = coordinates/self.voxel_size
-        coordinates = coordinates.astype(np.uint64, copy=False)
+        coordinates = coordinates.astype(np.uint32, copy=False)
         material_indices = self.material[(coordinates[:, 0], coordinates[:, 1], coordinates[:, 2])]
         return material_indices
 
