@@ -129,8 +129,8 @@ dmypy.json
 .pyre/
 
 # Output files
-/Output data
+Output data/
 
 # VS code config
-/.vscode
+.vscode/
 
