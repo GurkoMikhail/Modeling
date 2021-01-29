@@ -6,9 +6,9 @@ import pyqtgraph as pg
 import time as tm
 
 time = 30.
-detector_size = np.array([51.2, 40, 3.])
+detector_size = np.array([51.2, 51.2, 3.])
 pixel_size = 0.1
-resolution = 0.4/2.355
+resolution = 0.75/2.355
 
 range_size = np.column_stack([[0, 0], detector_size[:2]])
 
@@ -19,7 +19,7 @@ emission_coordinates = []
 
 start = tm.time()
 
-name = '<modeling.Modeling object at 0x7fbfe8304df0>'
+name = 'efg3 front projection'
 
 file = h5py.File(f'Output data/{name}', 'r')
 for group in file['Flows']:
@@ -38,6 +38,7 @@ file.close()
 print(tm.time() - start)
 
 def indices_repeated(emission_time):
+    emission_time = np.around(emission_time, decimals=7)
     unique, unique_counts = np.unique(emission_time, return_counts=True)
     indices = np.nonzero(unique_counts > 1)[0]
     unique = unique[indices]
@@ -116,7 +117,7 @@ p2.setLabel('left', 'N')
 p2.setLabel('bottom', 'Energy', units='eV')
 p2.setLogMode(y=True)
 p2.setMaximumHeight(250)
-win.resize(1200, 1000)
+win.resize(960, 1080)
 win.show()
 energy_distribution, energy = np.histogram(energy_transfer, bins=256)
 energy_distribution += 1
@@ -133,4 +134,7 @@ maxEnergyLine.sigPositionChangeFinished.connect(updateImage)
 
 updateImage()
 
+# del coordinates, energy_transfer, emission_time, emission_coordinates
+
 QtGui.QApplication.instance().exec_()
+

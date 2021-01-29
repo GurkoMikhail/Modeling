@@ -8,7 +8,7 @@ from pyqtgraph.opengl import GLBoxItem, GLVolumeItem
 
 voxel_size = 0.4
 
-volume = load('Phantoms/efg3.npy').astype(float32)
+volume = load('Phantoms/efg3cut_source.npy').astype(float32)
 volume_size = array(volume.shape, dtype=float32)*voxel_size
 
 levels = [

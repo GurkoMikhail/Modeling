@@ -17,9 +17,9 @@ pg.mkQApp()
 # # sys.exit(app.exec())
 # spaceView = win.graphicsView
 
-name = '<modeling.Modeling object at 0x7f00b73cddf0>'
+name = 'efg3 front projection'
 
-space_size = np.asarray((51.2, 58.2, 40.))
+space_size = np.asarray((51.2, 58.2, 51.2))
 
 spaceView = gl.GLViewWidget()
 spaceView.setCameraPosition(distance=np.max(space_size)*3)
@@ -33,8 +33,10 @@ energy_transfer = []
 emission_coordinates = []
 
 file = h5py.File(f'Output data/{name}', 'r')
-for group in file['Flows']:
-    flow = file['Flows'][group]
+
+times = sorted([list(map(float, key[1:-1].split(','))) for key in file['Flows'].keys()], key=lambda time: time[1])
+
+for flow in file['Flows'].values():
     coordinates.append(flow['Coordinates'])
     energy_transfer.append(flow['Energy transfer'])
     emission_coordinates.append(flow['Emission coordinates'])
@@ -66,9 +68,11 @@ phantom_volume = np.histogramdd(
     weights=energy_transfer
 )[0]
 
+del coordinates, energy_transfer, emission_coordinates
+
 levels = [
     np.min(phantom_volume),
-    np.max(phantom_volume)*0.01
+    np.max(phantom_volume)*0.05
 ]
 
 zeros = np.nonzero(phantom_volume < levels[1]*0.1)
@@ -89,7 +93,7 @@ phantom_volume = gl.GLVolumeItem(phantom_volume, sliceDensity=1)
 phantom_volume.scale(0.4, 0.4, 0.4, local=True)
 spaceView.addItem(phantom_volume)
 
-collimator_size = np.array((51.2, 40., 3.5))
+collimator_size = np.array((51.2, 51.2, 3.5))
 
 collimator_box = gl.GLBoxItem(color=(255, 0, 0, 255))
 collimator_box.setDepthValue(-300)
@@ -98,7 +102,7 @@ collimator_box.rotate(90, 1, 0, 0)
 collimator_box.translate(0, 7.0, 0)
 spaceView.addItem(collimator_box)
 
-detector_size = np.array((51.2, 40., 3.0))
+detector_size = np.array((51.2, 51.2, 3.0))
 
 detector_box = gl.GLBoxItem(color=(0, 255, 0, 255))
 detector_box.setDepthValue(-300)
@@ -115,3 +119,4 @@ spaceView.addItem(space_axis)
 # spaceView.addItem(volume)
 spaceView.show()
 QtGui.QApplication.exec()
+
