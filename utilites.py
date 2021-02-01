@@ -1,5 +1,10 @@
 from numba import jit
 import numpy as np
+from math import sqrt, cos, sin, pi
+from random import random
+
+from numpy.lib.function_base import vectorize
+
 
 # @jit(nopython=True, cache=True)
 def culculate_R(euler_angles):
@@ -54,11 +59,6 @@ def find_tops(coordinates, size, euler_angles):
     return tops
 
 
-
-
-
-
-
 def inside_region(coordinates, tops):
     """
     tops  =  numpy array of the shape (8,3) with coordinates in the clockwise order. first the bottom plane is considered then the top one.
@@ -91,3 +91,38 @@ def inside_region(coordinates, tops):
     indices = np.nonzero((res1*res2*res3))[0]
 
     return indices
+
+
+@jit(nopython=True, cache=True)
+def generate_directions(n):
+    directions = np.empty((n, 3))
+    for i in range(n):
+        a1 = random()
+        a2 = random()
+        cos_alpha = 1 - 2*a1
+        sq = sqrt(1 - cos_alpha**2)
+        cos_beta = sq*cos(2*pi*a2)
+        cos_gamma = sq*sin(2*pi*a2)
+        directions[i] = (cos_alpha, cos_beta, cos_gamma)
+    return directions
+
+
+if __name__ == "__main__":
+    import pyqtgraph as pg
+    import pyqtgraph.opengl as gl
+    from pyqtgraph.Qt import QtCore, QtGui
+
+    directions = generate_directions(10**6)
+    print('!!!')
+    
+    pg.mkQApp() 
+    spaceView = gl.GLViewWidget()
+    spaceView.setGeometry(0, 110, 1920, 1080)
+    spaceView.setCameraPosition(distance=5000)
+    volume = gl.GLScatterPlotItem()
+    spaceView.addItem(volume)
+    volume.setData(pos=directions*1000, color=(0, 0, 255, 255), size=1)
+
+    spaceView.show()
+    QtGui.QApplication.exec()
+

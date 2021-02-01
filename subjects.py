@@ -3,16 +3,12 @@ import utilites
 import collimators
 from time import time
 
-def asarray32(array):
-    return np.asarray(array, dtype=np.float32)
-
-
 class Space:
     """ Класс пространства моделирования """
 
     def __init__(self, size, material_index, subjects=[], **kwds):
         """ Конструктор пространства """
-        self.size = asarray32(size)    #cm
+        self.size = np.asarray(size)    #cm
         self.material_index = material_index
         self.subjects = subjects
         self.args = ['']
@@ -51,11 +47,11 @@ class Subject:
     """
 
     def __init__(self, coordinates, size, euler_angles, material_index):
-        self.coordinates = asarray32(coordinates)
-        self.size = asarray32(size)
-        self.euler_angles = asarray32(euler_angles)
+        self.coordinates = np.asarray(coordinates)
+        self.size = np.asarray(size)
+        self.euler_angles = np.asarray(euler_angles)
         self.material_index = material_index
-        self.R = asarray32(utilites.culculate_R(self.euler_angles))
+        self.R = np.asarray(utilites.culculate_R(self.euler_angles))
 
     def convert_to_local_coordinates(self, coordinates):
         """ Преобразовать в локальные координаты """
@@ -67,9 +63,9 @@ class Subject:
     def inside(self, coordinates):
         """ Список попавших внутрь объекта с преобразованием координат """
         self.convert_to_local_coordinates(coordinates)
-        in_x = (coordinates[:, 0] < self.size[0])*(coordinates[:, 0] > 0)
-        in_y = (coordinates[:, 1] < self.size[1])*(coordinates[:, 1] > 0)
-        in_z = (coordinates[:, 2] < self.size[2])*(coordinates[:, 2] > 0)
+        in_x = (coordinates[:, 0] <= self.size[0])*(coordinates[:, 0] >= 0)
+        in_y = (coordinates[:, 1] <= self.size[1])*(coordinates[:, 1] >= 0)
+        in_z = (coordinates[:, 2] <= self.size[2])*(coordinates[:, 2] >= 0)
         indices = np.nonzero(in_x*in_y*in_z)[0]
         return indices
 
@@ -90,10 +86,10 @@ class Phantom(Subject):
     """
 
     def __init__(self, coordinates, material, voxel_size):
-        self.coordinates = asarray32(coordinates)
-        self.material = asarray32(material)
+        self.coordinates = np.asarray(coordinates)
+        self.material = np.asarray(material)
         self.voxel_size = voxel_size
-        self.size = asarray32(self.material.shape)*self.voxel_size
+        self.size = np.asarray(self.material.shape)*self.voxel_size
 
     def convert_to_local_coordinates(self, coordinates):
         """ Преобразовать в локальные координаты """
@@ -129,7 +125,7 @@ class Collimator(Subject):
         super().__init__(coordinates, size, euler_angles, material_index)
         self.hole_diameter = hole_diameter
         self.septa = septa
-        self.holes_centers = asarray32(collimators.get_centers(self.size, self.hole_diameter, self.septa))
+        self.holes_centers = collimators.get_centers(self.size, self.hole_diameter, self.septa)
 
     def get_material_indices(self, coordinates):
         material = np.full(coordinates.shape[0], self.material_index, dtype=np.uint8)
@@ -156,15 +152,15 @@ subjects_list = {
 
 #     def __init__(self, coordinates, euler_angles, collimator_size, hole_diameter, septa, gap, detector_thickness, collimator_material_index, detector_material_index, **kwds):
 #         self.coordinates = coordinates
-#         self.euler_angles = asarray32(euler_angles)
-#         self.collimator_size = asarray32(collimator_size)
+#         self.euler_angles = np.asarray(euler_angles)
+#         self.collimator_size = np.asarray(collimator_size)
 #         self.hole_diameter = hole_diameter
 #         self.septa = septa
 #         self.gap = gap
 #         self.detector_thickness = detector_thickness
 #         self.collimator_material_index = collimator_material_index
 #         self.detector_material_index = detector_material_index
-#         self.size = asarray32(collimator_size)
+#         self.size = np.asarray(collimator_size)
 #         self.size[2] += gap + detector_thickness
 #         self.holes_centers = self.get_centers()
 #         self.R = utilites.culculate_R(self.euler_angles)
