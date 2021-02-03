@@ -2,6 +2,7 @@ from utilites import generate_directions
 import numpy as np
 from particles import Photons
 from processes import Interaction
+from multiprocessing import Process, Queue, Lock
 import h5py
 from time import time
 
@@ -14,7 +15,7 @@ class Modeling:
         self.space = space
         self.source = source
         self.solid_angle = ((0, -1, 0), 10*np.pi/180)
-        self.save_name = 'efg3 front projection'
+        self.file_name = 'efg3 front projection'
         self.args = [
             'spacing',
             'solid_angle',
@@ -26,28 +27,23 @@ class Modeling:
                 setattr(self, arg, kwds[arg])
 
     def start(self, total_time, time_step=1):
+        lock = Lock()
         for t in np.arange(self.source.timer, total_time, time_step):
-            t = round(t, 5)
-            dt = round(t + time_step, 5)
+            t = round(t, 4)
+            dt = round(t + time_step, 4)
+            flow_name = f'{(t, dt)}'
             flow = self.source.generate_particles_flow(self.space, time_step)
             print(f'Start flow for t = {t, dt}')
 
             start = time()
-            # print(f'Particles count = {self.particles.count}')
             flow.off_the_solid_angle(*self.solid_angle)
-            # print(f'Particles count = {self.particles.count}')
-            while flow.particles.count:
-                # print(f'Particles count = {self.particles.count}')
-                # print(f'Distance traveled = {round(flow.particles.distance_traveled[0], 5)} sm')
-                flow.next_step()
-            print(f'Finish! time left = {time() - start} s')
-            print(f'Space left {flow.left_the_space} particles')
 
+            while flow.particles.count:
+                flow.next_step()
             # data = self.data_structuring(flow, self.space.subjects[2])
             data = self.data_structuring(flow)
-            self.save_data(data, (t, dt))
+            self.save_data(data, flow_name)
             self.save_data(self.source.particles_emitted, 'Source distribution')
-            # print(f'Finish!')
 
     def data_structuring(self, flow, subject=None):
         data = {
@@ -81,7 +77,7 @@ class Modeling:
         return data
 
     def save_data(self, data, name):
-        file = h5py.File(f'Output data/{self.save_name}', 'a')
+        file = h5py.File(f'Output data/{self.file_name}', 'a')
         if type(data) is dict:
             group = file.create_group(f'Flows/{name}')
             for key in data.keys():
@@ -92,6 +88,7 @@ class Modeling:
             else:
                 dset = file.create_dataset(str(name), data=data)
         file.close()
+
 
 class ParticleFlow:
     """ Класс потока частиц """
@@ -109,14 +106,6 @@ class ParticleFlow:
         self.particles.delete(indices)
         return indices
 
-    def next_step(self):
-        free_path = self.interaction.get_free_path()
-        self.particles.move(free_path)
-        self.off_the_space()
-        self.interaction.apply()
-        self.low_energy()
-        self.step += 1
-    
     def off_the_space(self):
         coordinates = self.particles.coordinates
         size = self.space.size
@@ -136,6 +125,20 @@ class ParticleFlow:
         indices = np.nonzero(cos_alpha <= np.cos(angle))[0]
         self.particles.delete(indices)
         return indices
+
+    def next_step(self):
+        free_path = self.interaction.get_free_path()
+        self.particles.move(free_path)
+        self.off_the_space()
+        self.interaction.apply()
+        self.low_energy()
+        self.step += 1
+    
+    def run(self):
+        """ Реализация работы процесса """
+        while self.particles.count:
+                self.next_step()
+        self.save_data()
 
 
 class Source:
