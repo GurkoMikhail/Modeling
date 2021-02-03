@@ -12,7 +12,7 @@ class Interaction:
         for process in self.particles.processes:
             self.processes.append(processes[process](particles))
         self.data = []
-        self.max_lac = 1000
+        self.max_lac = materials.get_lac(np.array(5), np.array([self.particles.energy.min(), ]), self.processes).max()
         self.rng_choose = np.random.default_rng()
         self.rng_free_path = np.random.default_rng()
 
