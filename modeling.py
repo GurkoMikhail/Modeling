@@ -2,9 +2,9 @@ from utilites import generate_directions
 import numpy as np
 from particles import Photons
 from processes import Interaction
-from multiprocessing import Process, Queue, Lock
 import h5py
 from time import time
+
 
 class Modeling:
     """ 
@@ -19,7 +19,7 @@ class Modeling:
         self.args = [
             'spacing',
             'solid_angle',
-            'save_name'
+            'file_name'
             ]
 
         for arg in self.args:
@@ -27,20 +27,17 @@ class Modeling:
                 setattr(self, arg, kwds[arg])
 
     def start(self, total_time, time_step=1):
-        lock = Lock()
         for t in np.arange(self.source.timer, total_time, time_step):
             t = round(t, 4)
             dt = round(t + time_step, 4)
             flow_name = f'{(t, dt)}'
             flow = self.source.generate_particles_flow(self.space, time_step)
-            print(f'Start flow for t = {t, dt}')
-
-            start = time()
             flow.off_the_solid_angle(*self.solid_angle)
-
-            while flow.particles.count:
-                flow.next_step()
-            # data = self.data_structuring(flow, self.space.subjects[2])
+            print(f'Start flow for t = {t, dt}')
+            start = time()
+            flow.run()
+            print(f'Finish flow for t = {t, dt}')
+            print(f'Time left {time() - start}')
             data = self.data_structuring(flow)
             self.save_data(data, flow_name)
             self.save_data(self.source.particles_emitted, 'Source distribution')
@@ -77,6 +74,7 @@ class Modeling:
         return data
 
     def save_data(self, data, name):
+        # self.lock.acquire()
         file = h5py.File(f'Output data/{self.file_name}', 'a')
         if type(data) is dict:
             group = file.create_group(f'Flows/{name}')
@@ -138,7 +136,6 @@ class ParticleFlow:
         """ Реализация работы процесса """
         while self.particles.count:
                 self.next_step()
-        self.save_data()
 
 
 class Source:
