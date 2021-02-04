@@ -1,16 +1,29 @@
 from numba import jit
 import numpy as np
 
-
 @jit(nopython=True, cache=True)
 def get_collimated(coordinates, hole_centers, hole_diameter):
-    collimated = []
+    collimated = np.empty(coordinates.shape[0])
+    find_collimated(collimated, coordinates, hole_centers, hole_diameter)
+    return np.nonzero(collimated)[0]
+
+
+@jit(nopython=True, cache=True)
+def find_collimated(collimated, coordinates, hole_centers, hole_diameter):
     for i, coord in enumerate(coordinates):
         for hole_center in hole_centers:
-            if inside_hexagon(coord, hole_center, hole_diameter):
-                collimated.append(i)
+            x0 = coord[0]
+            y0 = coord[1]
+            x = hole_center[0]
+            y = hole_center[1]
+            dx = abs(x - x0)/hole_diameter
+            dy = abs(y - y0)/hole_diameter
+            a = 0.25*1.7320508
+            inside = (dy <= a) and (a*dx + 0.25*dy <= 0.5*a)
+            if inside:
+                collimated[i] = inside
                 break
-    return collimated
+        collimated[i] = False
 
 
 @jit(nopython=True, cache=True)
