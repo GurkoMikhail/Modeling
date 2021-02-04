@@ -18,7 +18,6 @@ class Particles:
         self._direction = np.asarray(direction)
         self._coordinates = np.asarray(coordinates)
         self._distance_traveled = np.zeros_like(self._energy)
-        self.mask = np.ones_like(self._energy, dtype=bool)
 
     def move(self, distance, indices=None):
         """ Переместить частицы """
