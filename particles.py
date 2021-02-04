@@ -18,6 +18,7 @@ class Particles:
         self._direction = np.asarray(direction)
         self._coordinates = np.asarray(coordinates)
         self._distance_traveled = np.zeros_like(self._energy)
+        self.mask = np.ones_like(self._energy, dtype=bool)
 
     def move(self, distance, indices=None):
         """ Переместить частицы """
@@ -40,11 +41,11 @@ class Particles:
         delta1 = sin_theta*np.cos(phi)
         delta2 = sin_theta*np.sin(phi)
         delta = np.ones_like(cos_theta) - 2*(self._direction[indices, 2] < 0)
-        B = self._direction[indices,0]*delta1 + self._direction[indices, 1]*delta2
-        tmp = cos_theta - B/(1 + np.abs(self._direction[indices, 2]))
+        b = self._direction[indices, 0]*delta1 + self._direction[indices, 1]*delta2
+        tmp = cos_theta - b/(1 + np.abs(self._direction[indices, 2]))
         cos_alpha = self._direction[indices, 0]*tmp + delta1
         cos_beta = self._direction[indices, 1]*tmp + delta2
-        cos_gamma = self._direction[indices, 2]*cos_theta - delta*B
+        cos_gamma = self._direction[indices, 2]*cos_theta - delta*b
         self._direction[indices] = np.column_stack((cos_alpha, cos_beta, cos_gamma))
 
     def change_energy(self, energy_change, indices):
