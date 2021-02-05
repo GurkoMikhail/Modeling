@@ -17,7 +17,7 @@ pg.mkQApp()
 # # sys.exit(app.exec())
 # spaceView = win.graphicsView
 
-name = 'efg3 front projection'
+name = 'efg3_fix front projection'
 
 space_size = np.asarray((51.2, 58.2, 51.2))
 
@@ -33,8 +33,10 @@ energy_transfer = []
 emission_coordinates = []
 
 file = h5py.File(f'Output data/{name}', 'r')
-
-times = sorted([list(map(float, key[1:-1].split(','))) for key in file['Flows'].keys()], key=lambda time: time[1])
+# group = file['Flows/(0.0, 0.01)']
+# del group
+times = np.asarray(sorted([list(map(float, key[1:-1].split(','))) for key in file['Flows'].keys()], key=lambda time: time[1]))
+print(times.max())
 
 for flow in file['Flows'].values():
     coordinates.append(flow['Coordinates'])
@@ -44,6 +46,16 @@ coordinates = np.concatenate(coordinates)
 energy_transfer = np.concatenate(energy_transfer)
 emission_coordinates = np.concatenate(emission_coordinates)
 file.close()
+
+# for flow in times[-10:]:
+#     flow = file['Flows'][f'{tuple(flow)}']
+#     coordinates.append(flow['Coordinates'])
+#     energy_transfer.append(flow['Energy transfer'])
+#     emission_coordinates.append(flow['Emission coordinates'])
+# coordinates = np.concatenate(coordinates)
+# energy_transfer = np.concatenate(energy_transfer)
+# emission_coordinates = np.concatenate(emission_coordinates)
+# file.close()
 
 def update_data():
     enough_energy = (energy_transfer >=120*10**3)*(energy_transfer <= 140*10**3)
