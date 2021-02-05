@@ -42,7 +42,7 @@ class Interaction:
     def apply(self):
         if self.particles.count:
             lac = self.get_lac()
-            self.max_lac = max(sum(lac, axis=0))
+            self.max_lac = sum(lac, axis=0).max()
             interaction_probability = lac/self.max_lac
             interacted = self.choose(interaction_probability)
             for i, process in enumerate(self.processes):
