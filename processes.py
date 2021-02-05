@@ -1,5 +1,5 @@
 from g4compton import generation_theta, culculate_energy_change
-from numpy import array, random, nonzero, pi
+from numpy import array, random, nonzero, pi, sum
 from materials import get_lac
 
 
