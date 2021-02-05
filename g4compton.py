@@ -1,5 +1,5 @@
 from numba import vectorize, float64
-from numpy import log, exp, sqrt, acos, cos
+from numpy import log, exp, sqrt, arccos, cos
 from random import random
 
 
@@ -23,7 +23,7 @@ def generation_theta(energy):
         sint2 = onecost*(2 - onecost)
         greject = 1 - epsilon*sint2/(1+ epsilonsq)
     costheta = 1 - onecost
-    theta = acos(costheta)
+    theta = arccos(costheta)
     return theta
 
 @vectorize([float64(float64, float64)], nopython=True, cache=True)
