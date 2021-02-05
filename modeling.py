@@ -1,6 +1,6 @@
 from h5py import File
 from utilites import generate_directions
-from numpy import arange, concatenate, nonzero, hstack, column_stack
+from numpy import arange, concatenate, nonzero, hstack, column_stack, sum
 from numpy import pi, sqrt, cos, sin, asarray, random, zeros_like, uint64, log, full
 from particles import Photons
 from processes import Interaction
