@@ -1,5 +1,5 @@
 from numpy import asarray, full, nonzero, uint8, uint64
-from utilites import rotating_the_coordinates
+from utilites import rotating_the_coordinates, culculate_R
 from collimators import get_centers, get_collimated
 
 
@@ -51,7 +51,7 @@ class Subject:
         self.size = asarray(size)
         self.euler_angles = asarray(euler_angles)
         self.material_index = material_index
-        self.R = asarray(utilites.culculate_R(self.euler_angles))
+        self.R = asarray(culculate_R(self.euler_angles))
 
     def convert_to_local_coordinates(self, coordinates):
         """ Преобразовать в локальные координаты """
