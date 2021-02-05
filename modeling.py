@@ -1,8 +1,9 @@
+from h5py import File
 from utilites import generate_directions
-import numpy as np
+from numpy import arange, concatenate, nonzero, hstack, column_stack
+from numpy import pi, sqrt, cos, sin, asarray, random, zeros_like, uint64, log, full
 from particles import Photons
 from processes import Interaction
-import h5py
 from time import time
 
 
@@ -14,7 +15,7 @@ class Modeling:
     def __init__(self, space, source, **kwds):
         self.space = space
         self.source = source
-        self.solid_angle = ((0, -1, 0), 10*np.pi/180)
+        self.solid_angle = ((0, -1, 0), 10*pi/180)
         self.file_name = 'efg3 front projection'
         self.args = [
             'spacing',
@@ -27,7 +28,7 @@ class Modeling:
                 setattr(self, arg, kwds[arg])
 
     def start(self, total_time, time_step=1):
-        for t in np.arange(self.source.timer, total_time, time_step):
+        for t in arange(self.source.timer, total_time, time_step):
             t = round(t, 4)
             dt = round(t + time_step, 4)
             flow_name = f'{(t, dt)}'
@@ -67,15 +68,14 @@ class Modeling:
                     data['Energy transfer'].append(energy_transfer[inside_subject])
                     data['Emission time'].append(emission_time[inside_subject])
                     data['Emission coordinates'].append(emission_coordinates[inside_subject])
-        data['Coordinates'] = np.concatenate(data['Coordinates'])
-        data['Energy transfer'] = np.concatenate(data['Energy transfer'])
-        data['Emission time'] = np.concatenate(data['Emission time'])
-        data['Emission coordinates'] = np.concatenate(data['Emission coordinates'])
+        data['Coordinates'] = concatenate(data['Coordinates'])
+        data['Energy transfer'] = concatenate(data['Energy transfer'])
+        data['Emission time'] = concatenate(data['Emission time'])
+        data['Emission coordinates'] = concatenate(data['Emission coordinates'])
         return data
 
     def save_data(self, data, name):
-        # self.lock.acquire()
-        file = h5py.File(f'Output data/{self.file_name}', 'a')
+        file = File(f'Output data/{self.file_name}', 'a')
         if type(data) is dict:
             group = file.create_group(f'Flows/{name}')
             for key in data.keys():
@@ -100,17 +100,17 @@ class ParticleFlow:
         self.min_energy = 0
 
     def low_energy(self):
-        indices = np.nonzero(self.particles.energy <= self.min_energy)[0]
+        indices = nonzero(self.particles.energy <= self.min_energy)[0]
         self.particles.delete(indices)
         return indices
 
     def off_the_space(self):
         coordinates = self.particles.coordinates
         size = self.space.size
-        x = np.nonzero((coordinates[:, 0] > size[0]) + (coordinates[:, 0] < 0))[0]
-        y = np.nonzero((coordinates[:, 1] > size[1]) + (coordinates[:, 1] < 0))[0]
-        z = np.nonzero((coordinates[:, 2] > size[2]) + (coordinates[:, 2] < 0))[0]
-        indices = np.hstack((x, y, z))
+        x = nonzero((coordinates[:, 0] > size[0]) + (coordinates[:, 0] < 0))[0]
+        y = nonzero((coordinates[:, 1] > size[1]) + (coordinates[:, 1] < 0))[0]
+        z = nonzero((coordinates[:, 2] > size[2]) + (coordinates[:, 2] < 0))[0]
+        indices = hstack((x, y, z))
         self.left_the_space += indices.size
         self.particles.delete(indices)
         return indices
@@ -119,8 +119,7 @@ class ParticleFlow:
         cos_alpha = vector[0]*self.particles.direction[:, 0]
         cos_alpha += vector[1]*self.particles.direction[:, 1]
         cos_alpha += vector[2]*self.particles.direction[:, 2]
-        # cos_alpha = x + y + z
-        indices = np.nonzero(cos_alpha <= np.cos(angle))[0]
+        indices = nonzero(cos_alpha <= cos(angle))[0]
         self.particles.delete(indices)
         return indices
 
@@ -156,11 +155,11 @@ class Source:
     """
 
     def __init__(self, coordinates, activity, distribution, voxel_size=0.4, radiation_type='Gamma', energy=140.*10**3, half_life=6*60*60, **kwds):
-        self.coordinates = np.asarray(coordinates)
-        self.initial_activity = np.asarray(activity)
-        self.distribution = np.asarray(distribution)
-        self.distribution /= np.sum(self.distribution)
-        self.particles_emitted = np.zeros_like(self.distribution)
+        self.coordinates = asarray(coordinates)
+        self.initial_activity = asarray(activity)
+        self.distribution = asarray(distribution)
+        self.distribution /= sum(self.distribution)
+        self.particles_emitted = zeros_like(self.distribution)
         self.voxel_size = voxel_size
         self.radiation_type = radiation_type
         self.energy = energy
@@ -168,9 +167,9 @@ class Source:
         self.timer = 0
         self.coordinates_table = self.generate_coordinates_table()
         self.args = []
-        self.rng_dist = np.random.default_rng()
-        self.rng_time = np.random.default_rng()
-        self.rng_dir = np.random.default_rng()
+        self.rng_dist = random.default_rng()
+        self.rng_time = random.default_rng()
+        self.rng_dir = random.default_rng()
 
         for arg in self.args:
             if arg in kwds:
@@ -178,14 +177,14 @@ class Source:
 
     def generate_coordinates_table(self):
         coordinates_table = []
-        size = np.asarray(self.distribution.shape, dtype=np.float)
+        size = asarray(self.distribution.shape, dtype=float)
         size *= self.voxel_size
         size += self.coordinates
-        for x in np.arange(self.coordinates[0], size[0], self.voxel_size):
-            for y in np.arange(self.coordinates[1], size[1], self.voxel_size):
-                for z in np.arange(self.coordinates[2], size[2], self.voxel_size):
+        for x in arange(self.coordinates[0], size[0], self.voxel_size):
+            for y in arange(self.coordinates[1], size[1], self.voxel_size):
+                for z in arange(self.coordinates[2], size[2], self.voxel_size):
                     coordinates_table.append([x, y, z])
-        coordinates_table = np.asarray(coordinates_table)
+        coordinates_table = asarray(coordinates_table)
         return coordinates_table
 
     @property
@@ -194,12 +193,12 @@ class Source:
     
     @property
     def nuclei_number(self):
-        return self.activity*self.half_life/np.log(2)
+        return self.activity*self.half_life/log(2)
 
     def save_particles_emmited(self, coordinates):
         coordinates = coordinates - self.coordinates
         coordinates /= self.voxel_size
-        coordinates = coordinates.astype(np.uint64)
+        coordinates = coordinates.astype(uint64)
         self.particles_emitted[(coordinates[:, 0], coordinates[:, 1], coordinates[:, 2])] += 1
 
     def generate_coordinates(self, n):
@@ -215,14 +214,14 @@ class Source:
         a1 = self.rng_dir.random(n)
         a2 = self.rng_dir.random(n)
         cos_alpha = 1 - 2*a1
-        sq = np.sqrt(1 - cos_alpha**2)
-        cos_beta = sq*np.cos(2*np.pi*a2)
-        cos_gamma = sq*np.sin(2*np.pi*a2)
-        directions = np.column_stack((cos_alpha, cos_beta, cos_gamma))
+        sq = sqrt(1 - cos_alpha**2)
+        cos_beta = sq*cos(2*pi*a2)
+        cos_gamma = sq*sin(2*pi*a2)
+        directions = column_stack((cos_alpha, cos_beta, cos_gamma))
         return directions
 
     def generate_particles(self, n):
-        energies = np.full(n, self.energy)
+        energies = full(n, self.energy)
         directions = generate_directions(n)
         coordinates = self.generate_coordinates(n)
         emission_time = self.generate_emission_time(n)

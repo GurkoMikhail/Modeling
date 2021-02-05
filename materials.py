@@ -1,7 +1,7 @@
-from numba.typed import List
 from numpy import array, load, unique, zeros, nonzero, interp
 
-mac_table = List([
+
+mac_table = list([
     load('macs/Air, Dry (near sea level).npy'),      # 0 - Воздух
     load('macs/Lung Tissue.npy'),                    # 1 - Лёгочная ткань
     load('macs/Tissue, Soft.npy'),                   # 2 - Мягкие ткани
@@ -9,6 +9,7 @@ mac_table = List([
     load('macs/Sodium Iodide.npy'),                  # 4 - Йодит натрия
     load('macs/Lead.npy'),                           # 5 - Свинец
 ])
+
 
 density_table = array([
     1.205E-03,      # 0 - Воздух
@@ -19,12 +20,14 @@ density_table = array([
     1.135E+01,      # 5 - Свинец
 ])
 
-lac_table = List()
+
+lac_table = list()
 for i, mac in enumerate(mac_table):
     lac = mac
     lac[:, 0] *= 10**6
     lac[:, 1:] *= density_table[i]
     lac_table.append(lac)
+
 
 materials_list = {
     'Air, Dry (near sea level)':        0,
@@ -35,11 +38,13 @@ materials_list = {
     'Lead':                             5,
 }
 
+
 process_indices = {
     'CoherentScatter': 1,
     'ComptonScattering': 2,
     'PhotoelectricEffect': 3
 }
+
 
 def get_lac(material, energy, processes):
     lac_out = zeros((len(processes), energy.size))

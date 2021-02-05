@@ -1,24 +1,25 @@
-import numpy as np
-import materials
-from time import time
+from g4compton import generation_theta, culculate_energy_change
+from numpy import array, random, nonzero, pi
+from materials import get_lac
+
 
 class Interaction:
     """ Класс взаимодействия """
 
-    def __init__(self, particles, space, **kwds):
+    def __init__(self, particles, space):
         self.particles = particles
         self.space = space
         self.processes = []
         for process in self.particles.processes:
             self.processes.append(processes[process](particles))
         self.data = []
-        self.max_lac = materials.get_lac(np.array(5), np.array([self.particles.energy.min(), ]), self.processes).max()
-        self.rng_choose = np.random.default_rng()
-        self.rng_free_path = np.random.default_rng()
+        self.max_lac = get_lac(array(5), array([self.particles.energy.min(), ]), self.processes).max()
+        self.rng_choose = random.default_rng()
+        self.rng_free_path = random.default_rng()
 
     def get_lac(self):
         material = self.space.get_material(self.particles.coordinates)
-        lac = materials.get_lac(material, self.particles.energy, self.processes)
+        lac = get_lac(material, self.particles.energy, self.processes)
         return lac
 
     def get_free_path(self):
@@ -33,7 +34,7 @@ class Interaction:
             p1 = p0 + p
             in_delta = (p0 <= rnd)
             in_delta *= (rnd <= p1)
-            ind = np.nonzero(in_delta)[0]
+            ind = nonzero(in_delta)[0]
             indices.append(ind)
             p0 = p1
         return indices
@@ -41,7 +42,7 @@ class Interaction:
     def apply(self):
         if self.particles.count:
             lac = self.get_lac()
-            self.max_lac = np.max(np.sum(lac, axis=0))
+            self.max_lac = max(sum(lac, axis=0))
             interaction_probability = lac/self.max_lac
             interacted = self.choose(interaction_probability)
             for i, process in enumerate(self.processes):
@@ -52,15 +53,10 @@ class Interaction:
 class Process:
     """ Класс процесса """
 
-    def __init__(self, particles, **kwds):
+    def __init__(self, particles):
         """ Конструктор процесса """
         
         self.particles = particles
-        self.args = []
-
-        for arg in self.args:
-            if arg in kwds:
-                setattr(self, arg, kwds[arg])
 
     def apply(self, interacted):
         """ Применить процесс """
@@ -79,48 +75,42 @@ class Process:
         return data
 
 
-import photoelectriceffect 
-
 class PhotoelectricEffect(Process):
     """ Класс фотоэффекта """
 
     def apply(self, interacted):
         """ Применить фотоэффект """
-        # print(f'PhotoelectricEffect {interacted.size}')
         energy_change = self.particles.energy[interacted]
         self.particles.change_energy(energy_change, interacted)
         data = super().apply(interacted)
         data.update({'Energy transfer': energy_change})
         return data
-
-
-import g4compton
+        
 
 class ComptonScattering(Process):
     """ Класс эффекта Комптона """
 
     def __init__(self, particles, **kwds):
         super().__init__(particles, **kwds)
-        self.rng_phi = np.random.default_rng()
+        self.rng_phi = random.default_rng()
 
     def get_theta(self, interacted):
         """ Получить угл рассеяния - theta """
-        theta = g4compton.generation_theta(self.particles.energy[interacted])
+        theta = generation_theta(self.particles.energy[interacted])
         return theta
 
     def get_phi(self, interacted):
         """ Получить угл рассеяния - phi """
-        phi = np.pi*(self.rng_phi.random(interacted.size)*2 - 1)
+        phi = pi*(self.rng_phi.random(interacted.size)*2 - 1)
         return phi
 
     def culculate_energy_change(self, theta, interacted):
         """ Вычислить изменения энергий """
-        energy_change = g4compton.culculate_energy_change(self.particles.energy[interacted], theta)
+        energy_change = culculate_energy_change(self.particles.energy[interacted], theta)
         return energy_change
 
     def apply(self, interacted):
         """ Применить эффект Комптона """
-        # print(f'Compton {interacted.size}')
         theta = self.get_theta(interacted)
         phi = self.get_phi(interacted)
         energy_change = self.culculate_energy_change(theta, interacted)
@@ -129,6 +119,7 @@ class ComptonScattering(Process):
         data = super().apply(interacted)
         data.update({'Energy transfer': energy_change})
         return data
+
 
 class PairProduction(Process):
     """ Класс эффекта образования электрон-позитронных пар """
