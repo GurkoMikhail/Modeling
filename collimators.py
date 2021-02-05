@@ -19,8 +19,8 @@ def find_collimated(collimated, coordinates, hole_centers, hole_diameter):
         for hole_center in hole_centers:
             x = hole_center[0]
             y = hole_center[1]
-            dx = abs(x - x0)/hole_diameter[0]
-            dy = abs(y - y0)/hole_diameter[0]
+            dx = abs(x - x0)/hole_diameter
+            dy = abs(y - y0)/hole_diameter
             if dy <= a and a*dx + dy/4 <= a_2:
                 collimated[i] = True
                 break
