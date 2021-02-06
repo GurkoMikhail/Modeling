@@ -79,12 +79,12 @@ class Modeling:
         if type(data) is dict:
             group = file.create_group(f'Flows/{name}')
             for key in data.keys():
-                dset = group.create_dataset(str(key), data=data[key])
+                group.create_dataset(str(key), data=data[key])
         else:
             if str(name) in file:
                 file[str(name)][:] = data
             else:
-                dset = file.create_dataset(str(name), data=data)
+                file.create_dataset(str(name), data=data)
         file.close()
 
 
