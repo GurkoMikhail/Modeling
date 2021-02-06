@@ -131,6 +131,9 @@ dmypy.json
 # Output files
 /Output data
 
+# Processed data
+/Processed data
+
 # VS code config
 /.vscode
 
