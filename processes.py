@@ -1,6 +1,6 @@
 from g4compton import generation_theta, culculate_energy_change
-from numpy import array, random, nonzero, pi, sum
-from materials import get_lac
+from numpy import array, random, nonzero, pi
+from materials import get_lac, get_max_lac
 
 
 class Interaction:
@@ -13,7 +13,7 @@ class Interaction:
         for process in self.particles.processes:
             self.processes.append(processes[process](particles))
         self.data = []
-        self.max_lac = get_lac(array(5), array([self.particles.energy.min(), ]), self.processes).max()
+        self.heaviest_material = array(5)
         self.rng_choose = random.default_rng()
         self.rng_free_path = random.default_rng()
 
@@ -23,6 +23,7 @@ class Interaction:
         return lac
 
     def get_free_path(self):
+        self.max_lac = get_max_lac(self.heaviest_material, self.particles.energy, self.processes)
         free_path = self.rng_free_path.exponential(1/self.max_lac, self.particles.count)
         return free_path
 
@@ -42,7 +43,6 @@ class Interaction:
     def apply(self):
         if self.particles.count:
             lac = self.get_lac()
-            self.max_lac = sum(lac, axis=0).max()
             interaction_probability = lac/self.max_lac
             interacted = self.choose(interaction_probability)
             for i, process in enumerate(self.processes):
