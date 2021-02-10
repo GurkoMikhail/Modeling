@@ -1,6 +1,6 @@
 from h5py import File
 from utilites import generate_directions
-from numpy import arange, concatenate, nonzero, hstack, column_stack, sum
+from numpy import arange, concatenate, nonzero, hstack, column_stack, sum, linspace
 from numpy import pi, sqrt, cos, sin, asarray, random, zeros_like, uint64, log, full
 from particles import Photons
 from processes import Interaction
@@ -180,9 +180,9 @@ class Source:
         size = asarray(self.distribution.shape, dtype=float)
         size *= self.voxel_size
         size += self.coordinates
-        for x in arange(self.coordinates[0], size[0], self.voxel_size):
-            for y in arange(self.coordinates[1], size[1], self.voxel_size):
-                for z in arange(self.coordinates[2], size[2], self.voxel_size):
+        for x in linspace(self.coordinates[0], size[0], self.distribution.shape[0]):
+            for y in linspace(self.coordinates[1], size[1], self.distribution.shape[1]):
+                for z in linspace(self.coordinates[2], size[2], self.distribution.shape[2]):
                     coordinates_table.append([x, y, z])
         coordinates_table = asarray(coordinates_table)
         return coordinates_table
