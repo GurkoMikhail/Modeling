@@ -1,4 +1,4 @@
-from numpy import array, load, unique, zeros, nonzero, interp, sum
+from numpy import array, load, unique, zeros, nonzero, interp
 
 
 mac_table = list([
@@ -56,11 +56,10 @@ def get_lac(material, energy, processes):
             lac_out[i, indices] = interp(energy[indices], lac[:, 0], lac[:, process_index])
     return lac_out
 
-def get_max_lac(material, energy, processes):
+def get_total_lac(material, energy, processes):
     max_lac = 0
     lac = lac_table[material]
     for i, process in enumerate(processes):
         process_index = process_indices[process.__class__.__name__]
         max_lac += interp(energy, lac[:, 0], lac[:, process_index])
-    max_lac = max_lac.max()
     return max_lac
