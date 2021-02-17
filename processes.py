@@ -1,6 +1,6 @@
 from g4compton import generation_theta, culculate_energy_change
 from numpy import array, random, nonzero, pi
-from materials import get_lac, get_max_lac
+from materials import get_lac, get_total_lac
 
 
 class Interaction:
@@ -17,34 +17,37 @@ class Interaction:
         self.rng_choose = random.default_rng()
         self.rng_free_path = random.default_rng()
 
-    def get_lac(self):
-        material = self.space.get_material(self.particles.coordinates)
-        lac = get_lac(material, self.particles.energy, self.processes)
+    def get_lac(self, indices):
+        coordinates = self.particles.coordinates[indices]
+        energy = self.particles.energy[indices]
+        material = self.space.get_material(coordinates)
+        lac = get_lac(material, energy, self.processes)
         return lac
 
     def get_free_path(self):
-        self.max_lac = get_max_lac(self.heaviest_material, self.particles.energy, self.processes)
+        self.max_lac = get_total_lac(self.heaviest_material, self.particles.energy, self.processes)
         free_path = self.rng_free_path.exponential(1/self.max_lac, self.particles.count)
         return free_path
 
-    def choose(self, interaction_probability):
+    def choose(self, selectable, probability):
         indices = []
-        rnd = self.rng_choose.random(interaction_probability[0].size)
+        rnd = self.rng_choose.random(probability[0].size)
         p0 = 0
-        for p in interaction_probability:
+        for p in probability:
             p1 = p0 + p
             in_delta = (p0 <= rnd)
             in_delta *= (rnd <= p1)
             ind = nonzero(in_delta)[0]
-            indices.append(ind)
+            indices.append(selectable[ind])
             p0 = p1
         return indices
         
-    def apply(self):
-        if self.particles.count:
-            lac = self.get_lac()
-            interaction_probability = lac/self.max_lac
-            interacted = self.choose(interaction_probability)
+    def apply(self, indices):
+        if indices.size:
+            lac = self.get_lac(indices)
+            max_lac = self.max_lac[indices]
+            interaction_probability = lac/max_lac
+            interacted = self.choose(indices, interaction_probability)
             for i, process in enumerate(self.processes):
                 indices = interacted[i]
                 self.data.append(process.apply(indices))

@@ -1,6 +1,6 @@
 from h5py import File
 from utilites import generate_directions
-from numpy import arange, concatenate, nonzero, hstack, column_stack, sum, linspace
+from numpy import arange, concatenate, nonzero, hstack, column_stack, sum, linspace, unique
 from numpy import pi, sqrt, cos, sin, asarray, random, zeros_like, uint64, log, full
 from particles import Photons
 from processes import Interaction
@@ -99,22 +99,10 @@ class ParticleFlow:
         self.step = 1
         self.min_energy = 0
 
-    def low_energy(self):
-        indices = nonzero(self.particles.energy <= self.min_energy)[0]
-        self.particles.delete(indices)
+    def low_energy(self, energy):
+        indices = nonzero(energy <= self.min_energy)[0]
         return indices
-
-    def off_the_space(self):
-        coordinates = self.particles.coordinates
-        size = self.space.size
-        x = nonzero((coordinates[:, 0] > size[0]) + (coordinates[:, 0] < 0))[0]
-        y = nonzero((coordinates[:, 1] > size[1]) + (coordinates[:, 1] < 0))[0]
-        z = nonzero((coordinates[:, 2] > size[2]) + (coordinates[:, 2] < 0))[0]
-        indices = hstack((x, y, z))
-        self.left_the_space += indices.size
-        self.particles.delete(indices)
-        return indices
-
+        
     def off_the_solid_angle(self, vector, angle):
         cos_alpha = vector[0]*self.particles.direction[:, 0]
         cos_alpha += vector[1]*self.particles.direction[:, 1]
@@ -123,12 +111,24 @@ class ParticleFlow:
         self.particles.delete(indices)
         return indices
 
+    @property
+    def invalid_particles(self):
+        indices = []
+        indices.append(self.low_energy(self.particles.energy))
+        indices.append(self.space.outside(self.particles.coordinates))
+        indices = concatenate(indices)
+        return indices
+
+    @property
+    def valid_particles(self):
+        indices = self.space.inside(self.particles.coordinates)
+        return indices
+
     def next_step(self):
         free_path = self.interaction.get_free_path()
         self.particles.move(free_path)
-        self.off_the_space()
-        self.interaction.apply()
-        self.low_energy()
+        self.interaction.apply(self.valid_particles)
+        self.particles.delete(self.invalid_particles)
         self.step += 1
     
     def run(self):

@@ -17,6 +17,22 @@ class Space:
             if arg in kwds:
                 setattr(self, arg, kwds[arg])
 
+    def outside(self, coordinates):
+        """ Список попавших внутрь пространства"""
+        off_x = (coordinates[:, 0] > self.size[0]) + (coordinates[:, 0] < 0)
+        off_y = (coordinates[:, 1] > self.size[1]) + (coordinates[:, 1] < 0)
+        off_z = (coordinates[:, 2] > self.size[2]) + (coordinates[:, 2] < 0)
+        indices = nonzero(off_x + off_y + off_z)[0]
+        return indices
+
+    def inside(self, coordinates):
+        """ Список попавших внутрь пространства """
+        in_x = (coordinates[:, 0] <= self.size[0])*(coordinates[:, 0] >= 0)
+        in_y = (coordinates[:, 1] <= self.size[1])*(coordinates[:, 1] >= 0)
+        in_z = (coordinates[:, 2] <= self.size[2])*(coordinates[:, 2] >= 0)
+        indices = nonzero(in_x*in_y*in_z)[0]
+        return indices
+
     def get_material(self, coordinates):
         """ Получить список веществ """
         material = full(coordinates.shape[0], self.material_index, uint8)
