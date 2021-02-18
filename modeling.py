@@ -195,7 +195,7 @@ class Source:
     def nuclei_number(self):
         return self.activity*self.half_life/log(2)
 
-    def save_particles_emmited(self, coordinates):
+    def save_particles_emitted(self, coordinates):
         coordinates = coordinates - self.coordinates
         coordinates /= self.voxel_size
         coordinates = coordinates.astype(uint64)
@@ -231,7 +231,7 @@ class Source:
     def generate_particles_flow(self, space, time_step):
         n = int(self.nuclei_number*(1 - 2**(-time_step/self.half_life)))
         particles = self.generate_particles(n)
-        self.save_particles_emmited(particles.coordinates)
+        self.save_particles_emitted(particles.coordinates)
         particles_flow = ParticleFlow(particles, space)
         self.timer += time_step
         return particles_flow
