@@ -159,7 +159,7 @@ class Source:
         self.initial_activity = asarray(activity)
         self.distribution = asarray(distribution)
         self.distribution /= sum(self.distribution)
-        self.particles_emitted = zeros_like(self.distribution)
+        self.particles_emitted = zeros_like(self.distribution, dtype=uint64)
         self.voxel_size = voxel_size
         self.radiation_type = radiation_type
         self.energy = energy
