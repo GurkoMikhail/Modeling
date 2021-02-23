@@ -1,12 +1,13 @@
 from numba import jit
-from numpy import array, cos, sin, sqrt, dot, empty, pi
+import numpy as np
+from numpy import cos, sin, sqrt, dot, pi
 from random import random
 
 
 def culculate_R(axis, angle):
     x, y, z = axis
 
-    R = array([
+    R = np.array([
         [cos(angle) + (1 - cos(angle))*x**2, (1 - cos(angle))*x*y - sin(angle)*z, (1 - cos(angle))*x*z + sin(angle)*y],
         [(1 - cos(angle))*y*x + sin(angle)*z, cos(angle) + (1 - cos(angle))*y**2, (1 - cos(angle))*y*z - sin(angle)*x],
         [(1 - cos(angle))*z*x - sin(angle)*y, (1 - cos(angle))*z*y + sin(angle)*x, cos(angle) + (1 - cos(angle)*z**2)]
@@ -17,19 +18,19 @@ def culculate_R(axis, angle):
 def culculate_R_euler(euler_angles):
     alpha, beta, gamma = euler_angles
 
-    Rx = array([
+    Rx = np.array([
         [1,                 0,              0               ],
         [0,                 cos(beta),   sin(beta)    ],
         [0,                 -sin(beta),  cos(beta)    ]
     ])
 
-    Ry = array([
+    Ry = np.array([
         [cos(gamma),     0,              -sin(gamma)  ],
         [0,                 1,              0               ],
         [sin(gamma),     0,              cos(gamma)   ]
     ])
 
-    Rz = array([
+    Rz = np.array([
         [cos(alpha),     sin(alpha),  0               ],
         [-sin(alpha),    cos(alpha),  0               ],
         [0,                 0,              1               ]
@@ -48,7 +49,7 @@ def rotating_the_coordinates(coordinates, R):
 
 @jit(nopython=True, cache=True)
 def generate_directions(n):
-    directions = empty((n, 3))
+    directions = np.empty((n, 3))
     for i in range(n):
         a1 = random()
         a2 = random()

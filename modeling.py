@@ -1,8 +1,7 @@
 from h5py import File
-from utilites import generate_directions
-from numpy import arange, concatenate, nonzero, column_stack, sum, linspace
-from numpy import pi, sqrt, cos, sin, asarray, random, zeros_like, uint64, log, full
-from utilites import rotating_the_coordinates, culculate_R_euler
+import numpy as np
+from numpy import pi, sqrt, cos, sin, log, uint64
+import utilites
 from particles import Photons
 from processes import Interaction
 from time import time
@@ -28,7 +27,7 @@ class Modeling:
                 setattr(self, arg, kwds[arg])
 
     def start(self, total_time, time_step=1):
-        for t in arange(self.source.timer, total_time, time_step):
+        for t in np.arange(self.source.timer, total_time, time_step):
             t = round(t, 4)
             dt = round(t + time_step, 4)
             flow_name = f'{(t, dt)}'
@@ -68,10 +67,10 @@ class Modeling:
                     data['Energy transfer'].append(energy_transfer[inside_subject])
                     data['Emission time'].append(emission_time[inside_subject])
                     data['Emission coordinates'].append(emission_coordinates[inside_subject])
-        data['Coordinates'] = concatenate(data['Coordinates'])
-        data['Energy transfer'] = concatenate(data['Energy transfer'])
-        data['Emission time'] = concatenate(data['Emission time'])
-        data['Emission coordinates'] = concatenate(data['Emission coordinates'])
+        data['Coordinates'] = np.concatenate(data['Coordinates'])
+        data['Energy transfer'] = np.concatenate(data['Energy transfer'])
+        data['Emission time'] = np.concatenate(data['Emission time'])
+        data['Emission coordinates'] = np.concatenate(data['Emission coordinates'])
         return data
 
     def save_data(self, data, name):
@@ -100,14 +99,14 @@ class ParticleFlow:
         self.min_energy = 0
 
     def low_energy(self, energy):
-        indices = nonzero(energy <= self.min_energy)[0]
+        indices = np.nonzero(energy <= self.min_energy)[0]
         return indices
         
     def off_the_solid_angle(self, vector, angle):
         cos_alpha = vector[0]*self.particles.direction[:, 0]
         cos_alpha += vector[1]*self.particles.direction[:, 1]
         cos_alpha += vector[2]*self.particles.direction[:, 2]
-        indices = nonzero(cos_alpha <= cos(angle))[0]
+        indices = np.nonzero(cos_alpha <= cos(angle))[0]
         self.particles.delete(indices)
         return indices
 
@@ -116,7 +115,7 @@ class ParticleFlow:
         indices = []
         indices.append(self.low_energy(self.particles.energy))
         indices.append(self.space.outside(self.particles.coordinates))
-        indices = concatenate(indices)
+        indices = np.concatenate(indices)
         return indices
 
     @property
@@ -155,13 +154,13 @@ class Source:
     """
 
     def __init__(self, coordinates, activity, distribution, voxel_size=0.4, radiation_type='Gamma', energy=140.*10**3, half_life=6*60*60, euler_angles=None, rotation_center=None):
-        self.coordinates = asarray(coordinates)
-        self.initial_activity = asarray(activity)
-        self.distribution = asarray(distribution)
-        self.distribution /= sum(self.distribution)
-        self.particles_emitted = zeros_like(self.distribution, dtype=uint64)
+        self.coordinates = np.asarray(coordinates)
+        self.initial_activity = np.asarray(activity)
+        self.distribution = np.asarray(distribution)
+        self.distribution /= np.sum(self.distribution)
+        self.particles_emitted = np.zeros_like(self.distribution, dtype=uint64)
         self.voxel_size = voxel_size
-        self.size = asarray(self.distribution.shape)*self.voxel_size
+        self.size = np.asarray(self.distribution.shape)*self.voxel_size
         self.radiation_type = radiation_type
         self.energy = energy
         self.half_life = half_life
@@ -170,26 +169,26 @@ class Source:
         self.rotated = False
         if euler_angles is not None:
             self.rotate(euler_angles, rotation_center)
-        self.rng_dist = random.default_rng()
-        self.rng_ddist = random.default_rng()
-        self.rng_time = random.default_rng()
-        self.rng_dir = random.default_rng()
+        self.rng_dist = np.random.default_rng()
+        self.rng_ddist = np.random.default_rng()
+        self.rng_time = np.random.default_rng()
+        self.rng_dir = np.random.default_rng()
 
     def rotate(self, euler_angles, rotation_center=None):
         self.rotated = True
-        self.euler_angles = asarray(euler_angles)
+        self.euler_angles = np.asarray(euler_angles)
         if rotation_center is None:
-            rotation_center = asarray(self.size/2)
+            rotation_center = np.asarray(self.size/2)
         self.rotation_center = rotation_center
-        self.R = asarray(culculate_R_euler(-self.euler_angles))
+        self.R = np.asarray(utilites.culculate_R_euler(-self.euler_angles))
 
     def generate_coordinates_table(self):
         coordinates_table = []
-        for x in linspace(0, self.size[0], self.distribution.shape[0]):
-            for y in linspace(0, self.size[1], self.distribution.shape[1]):
-                for z in linspace(0, self.size[2], self.distribution.shape[2]):
+        for x in np.linspace(0, self.size[0], self.distribution.shape[0]):
+            for y in np.linspace(0, self.size[1], self.distribution.shape[1]):
+                for z in np.linspace(0, self.size[2], self.distribution.shape[2]):
                     coordinates_table.append([x, y, z])
-        coordinates_table = asarray(coordinates_table)
+        coordinates_table = np.asarray(coordinates_table)
         return coordinates_table
 
     @property
@@ -213,7 +212,7 @@ class Source:
         self.save_particles_emitted(coordinates)
         if self.rotated:
             coordinates -= self.rotation_center
-            rotating_the_coordinates(coordinates, self.R)
+            utilites.rotating_the_coordinates(coordinates, self.R)
             coordinates += self.rotation_center
         coordinates += self.coordinates
         return coordinates
@@ -229,12 +228,12 @@ class Source:
         sq = sqrt(1 - cos_alpha**2)
         cos_beta = sq*cos(2*pi*a2)
         cos_gamma = sq*sin(2*pi*a2)
-        directions = column_stack((cos_alpha, cos_beta, cos_gamma))
+        directions = np.column_stack((cos_alpha, cos_beta, cos_gamma))
         return directions
 
     def generate_particles(self, n):
-        energies = full(n, self.energy)
-        directions = generate_directions(n)
+        energies = np.full(n, self.energy)
+        directions = utilites.generate_directions(n)
         coordinates = self.generate_coordinates(n)
         emission_time = self.generate_emission_time(n)
         particles = Photons(energies, directions, coordinates, emission_time)

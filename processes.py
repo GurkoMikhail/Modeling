@@ -1,6 +1,7 @@
-from g4compton import generation_theta, culculate_energy_change
-from numpy import array, random, nonzero, pi
-from materials import get_lac, get_total_lac
+import g4compton
+import numpy as np
+from numpy import pi
+import materials
 
 
 class Interaction:
@@ -13,19 +14,19 @@ class Interaction:
         for process in self.particles.processes:
             self.processes.append(processes[process](particles))
         self.data = []
-        self.heaviest_material = array(5)
-        self.rng_choose = random.default_rng()
-        self.rng_free_path = random.default_rng()
+        self.heaviest_material = np.array(5)
+        self.rng_choose = np.random.default_rng()
+        self.rng_free_path = np.random.default_rng()
 
     def get_lac(self, indices):
         coordinates = self.particles.coordinates[indices]
         energy = self.particles.energy[indices]
         material = self.space.get_material(coordinates)
-        lac = get_lac(material, energy, self.processes)
+        lac = materials.get_lac(material, energy, self.processes)
         return lac
 
     def get_free_path(self):
-        self.max_lac = get_total_lac(self.heaviest_material, self.particles.energy, self.processes)
+        self.max_lac = materials.get_total_lac(self.heaviest_material, self.particles.energy, self.processes)
         free_path = self.rng_free_path.exponential(1/self.max_lac, self.particles.count)
         return free_path
 
@@ -37,7 +38,7 @@ class Interaction:
             p1 = p0 + p
             in_delta = (p0 <= rnd)
             in_delta *= (rnd <= p1)
-            ind = nonzero(in_delta)[0]
+            ind = np.nonzero(in_delta)[0]
             indices.append(selectable[ind])
             p0 = p1
         return indices
@@ -95,11 +96,11 @@ class ComptonScattering(Process):
 
     def __init__(self, particles, **kwds):
         super().__init__(particles, **kwds)
-        self.rng_phi = random.default_rng()
+        self.rng_phi = np.random.default_rng()
 
     def get_theta(self, interacted):
         """ Получить угл рассеяния - theta """
-        theta = generation_theta(self.particles.energy[interacted])
+        theta = g4compton.generation_theta(self.particles.energy[interacted])
         return theta
 
     def get_phi(self, interacted):
@@ -109,7 +110,7 @@ class ComptonScattering(Process):
 
     def culculate_energy_change(self, theta, interacted):
         """ Вычислить изменения энергий """
-        energy_change = culculate_energy_change(self.particles.energy[interacted], theta)
+        energy_change = g4compton.culculate_energy_change(self.particles.energy[interacted], theta)
         return energy_change
 
     def apply(self, interacted):

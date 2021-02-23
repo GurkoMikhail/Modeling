@@ -1,12 +1,13 @@
 from numba import jit
-from numpy import array, zeros, nonzero, ubyte, sqrt, cos, pi, arange
+import numpy as np
+from numpy import ubyte, sqrt, cos, pi
 
 
 @jit(nopython=True, cache=True)
 def get_collimated(coordinates, hole_centers, hole_diameter):
-    collimated = zeros(coordinates.shape[0], dtype=ubyte)
+    collimated = np.zeros(coordinates.shape[0], dtype=ubyte)
     find_collimated(collimated, coordinates, hole_centers, hole_diameter)
-    return nonzero(collimated)[0]
+    return np.nonzero(collimated)[0]
 
 
 @jit(nopython=True, cache=True)
@@ -38,15 +39,15 @@ def get_centers(size, hole_diameter, septa):
     y0 = hole_size_Y + septa
     y1 = size[1] - (hole_size_Y + septa)
     i = 0
-    for y in arange(y0, y1, intercenter_distance_Y/2):
+    for y in np.arange(y0, y1, intercenter_distance_Y/2):
         if i%2 == 1:
-            for x in arange(x0, x1, intercenter_distance_X):
+            for x in np.arange(x0, x1, intercenter_distance_X):
                 centers.append((x, y))
         else:
-            for x in arange(x0 + intercenter_distance_X/2, x1, intercenter_distance_X):
+            for x in np.arange(x0 + intercenter_distance_X/2, x1, intercenter_distance_X):
                 centers.append((x, y))
         i += 1
-    centers = array(centers)
+    centers = np.array(centers)
     dx = (size[0] - centers[-1, 0] - (hole_size_X + septa))
     dy = (size[1] - centers[-1, 1] - (hole_size_Y + septa))
     centers[:, 1] += dy/2

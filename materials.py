@@ -1,17 +1,17 @@
-from numpy import array, load, unique, zeros, nonzero, interp
+import numpy as np
 
 
 mac_table = list([
-    load('macs/Air, Dry (near sea level).npy'),      # 0 - Воздух
-    load('macs/Lung Tissue.npy'),                    # 1 - Лёгочная ткань
-    load('macs/Tissue, Soft.npy'),                   # 2 - Мягкие ткани
-    load('macs/B-100 Bone-Equivalent Plastic.npy'),  # 3 - Эквивалент кости
-    load('macs/Sodium Iodide.npy'),                  # 4 - Йодит натрия
-    load('macs/Lead.npy'),                           # 5 - Свинец
+    np.load('macs/Air, Dry (near sea level).npy'),      # 0 - Воздух
+    np.load('macs/Lung Tissue.npy'),                    # 1 - Лёгочная ткань
+    np.load('macs/Tissue, Soft.npy'),                   # 2 - Мягкие ткани
+    np.load('macs/B-100 Bone-Equivalent Plastic.npy'),  # 3 - Эквивалент кости
+    np.load('macs/Sodium Iodide.npy'),                  # 4 - Йодит натрия
+    np.load('macs/Lead.npy'),                           # 5 - Свинец
 ])
 
 
-density_table = array([
+density_table = np.array([
     1.205E-03,      # 0 - Воздух
     1.205E-03,      # 1 - Лёгочная ткань
     1.060E+00,      # 2 - Мягкие ткани
@@ -47,13 +47,13 @@ process_indices = {
 
 
 def get_lac(material, energy, processes):
-    lac_out = zeros((len(processes), energy.size))
-    for m in unique(material):
+    lac_out = np.zeros((len(processes), energy.size))
+    for m in np.unique(material):
         lac = lac_table[m]
-        indices = nonzero(material == m)[0]
+        indices = np.nonzero(material == m)[0]
         for i, process in enumerate(processes):
             process_index = process_indices[process.__class__.__name__]
-            lac_out[i, indices] = interp(energy[indices], lac[:, 0], lac[:, process_index])
+            lac_out[i, indices] = np.interp(energy[indices], lac[:, 0], lac[:, process_index])
     return lac_out
 
 def get_total_lac(material, energy, processes):
@@ -61,5 +61,5 @@ def get_total_lac(material, energy, processes):
     lac = lac_table[material]
     for i, process in enumerate(processes):
         process_index = process_indices[process.__class__.__name__]
-        max_lac += interp(energy, lac[:, 0], lac[:, process_index])
+        max_lac += np.interp(energy, lac[:, 0], lac[:, process_index])
     return max_lac
