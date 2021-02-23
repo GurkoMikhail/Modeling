@@ -1,7 +1,8 @@
 from h5py import File
 from utilites import generate_directions
-from numpy import arange, concatenate, nonzero, hstack, column_stack, sum, linspace, unique
+from numpy import arange, concatenate, nonzero, column_stack, sum, linspace
 from numpy import pi, sqrt, cos, sin, asarray, random, zeros_like, uint64, log, full
+from utilites import rotating_the_coordinates, culculate_R_euler
 from particles import Photons
 from processes import Interaction
 from time import time
@@ -16,9 +17,8 @@ class Modeling:
         self.space = space
         self.source = source
         self.solid_angle = ((0, -1, 0), 10*pi/180)
-        self.file_name = 'efg3 front projection'
+        self.file_name = f'{self}'
         self.args = [
-            'spacing',
             'solid_angle',
             'file_name'
             ]
@@ -154,35 +154,40 @@ class Source:
     [half_life] = sec
     """
 
-    def __init__(self, coordinates, activity, distribution, voxel_size=0.4, radiation_type='Gamma', energy=140.*10**3, half_life=6*60*60, **kwds):
+    def __init__(self, coordinates, activity, distribution, voxel_size=0.4, radiation_type='Gamma', energy=140.*10**3, half_life=6*60*60, euler_angles=None, rotation_center=None):
         self.coordinates = asarray(coordinates)
         self.initial_activity = asarray(activity)
         self.distribution = asarray(distribution)
         self.distribution /= sum(self.distribution)
         self.particles_emitted = zeros_like(self.distribution, dtype=uint64)
         self.voxel_size = voxel_size
+        self.size = asarray(self.distribution.shape)*self.voxel_size
         self.radiation_type = radiation_type
         self.energy = energy
         self.half_life = half_life
         self.timer = 0
         self.coordinates_table = self.generate_coordinates_table()
-        self.args = []
+        self.rotated = False
+        if euler_angles is not None:
+            self.rotate(euler_angles, rotation_center)
         self.rng_dist = random.default_rng()
+        self.rng_ddist = random.default_rng()
         self.rng_time = random.default_rng()
         self.rng_dir = random.default_rng()
 
-        for arg in self.args:
-            if arg in kwds:
-                setattr(self, arg, kwds[arg])
+    def rotate(self, euler_angles, rotation_center=None):
+        self.rotated = True
+        self.euler_angles = asarray(euler_angles)
+        if rotation_center is None:
+            rotation_center = asarray(self.size/2)
+        self.rotation_center = rotation_center
+        self.R = asarray(culculate_R_euler(-self.euler_angles))
 
     def generate_coordinates_table(self):
         coordinates_table = []
-        size = asarray(self.distribution.shape, dtype=float)
-        size *= self.voxel_size
-        size += self.coordinates
-        for x in linspace(self.coordinates[0], size[0], self.distribution.shape[0]):
-            for y in linspace(self.coordinates[1], size[1], self.distribution.shape[1]):
-                for z in linspace(self.coordinates[2], size[2], self.distribution.shape[2]):
+        for x in linspace(0, self.size[0], self.distribution.shape[0]):
+            for y in linspace(0, self.size[1], self.distribution.shape[1]):
+                for z in linspace(0, self.size[2], self.distribution.shape[2]):
                     coordinates_table.append([x, y, z])
         coordinates_table = asarray(coordinates_table)
         return coordinates_table
@@ -196,14 +201,21 @@ class Source:
         return self.activity*self.half_life/log(2)
 
     def save_particles_emitted(self, coordinates):
-        coordinates = coordinates - self.coordinates
-        coordinates /= self.voxel_size
+        coordinates = coordinates/self.voxel_size
         coordinates = coordinates.astype(uint64)
         self.particles_emitted[(coordinates[:, 0], coordinates[:, 1], coordinates[:, 2])] += 1
 
     def generate_coordinates(self, n):
         p = self.distribution.ravel()
         coordinates = self.rng_dist.choice(self.coordinates_table, n, p=p)
+        dcoordinates = self.rng_ddist.uniform(0, self.voxel_size, coordinates.shape)
+        coordinates += dcoordinates
+        self.save_particles_emitted(coordinates)
+        if self.rotated:
+            coordinates -= self.rotation_center
+            rotating_the_coordinates(coordinates, self.R)
+            coordinates += self.rotation_center
+        coordinates += self.coordinates
         return coordinates
 
     def generate_emission_time(self, n):
@@ -231,7 +243,6 @@ class Source:
     def generate_particles_flow(self, space, time_step):
         n = int(self.nuclei_number*(1 - 2**(-time_step/self.half_life)))
         particles = self.generate_particles(n)
-        self.save_particles_emitted(particles.coordinates)
         particles_flow = ParticleFlow(particles, space)
         self.timer += time_step
         return particles_flow

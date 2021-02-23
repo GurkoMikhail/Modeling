@@ -1,15 +1,15 @@
-from numpy import asarray, full, nonzero, uint8, uint64
-from utilites import rotating_the_coordinates, culculate_R
+from numpy import asarray, full, nonzero, uint8, uint64, any, all, dot
+from utilites import rotating_the_coordinates, culculate_R_euler
 from collimators import get_centers, get_collimated
 
 
 class Space:
     """ Класс пространства моделирования """
 
-    def __init__(self, size, material_index, subjects=[], **kwds):
+    def __init__(self, size, material, subjects=[], **kwds):
         """ Конструктор пространства """
         self.size = asarray(size)    #cm
-        self.material_index = material_index
+        self.material = material
         self.subjects = subjects
         self.args = ['']
 
@@ -19,25 +19,21 @@ class Space:
 
     def outside(self, coordinates):
         """ Список попавших внутрь пространства"""
-        off_x = (coordinates[:, 0] > self.size[0]) + (coordinates[:, 0] < 0)
-        off_y = (coordinates[:, 1] > self.size[1]) + (coordinates[:, 1] < 0)
-        off_z = (coordinates[:, 2] > self.size[2]) + (coordinates[:, 2] < 0)
-        indices = nonzero(off_x + off_y + off_z)[0]
+        outside = (coordinates > self.size) + (coordinates < 0)
+        indices = nonzero(any(outside, axis=1))[0]
         return indices
 
     def inside(self, coordinates):
         """ Список попавших внутрь пространства """
-        in_x = (coordinates[:, 0] <= self.size[0])*(coordinates[:, 0] >= 0)
-        in_y = (coordinates[:, 1] <= self.size[1])*(coordinates[:, 1] >= 0)
-        in_z = (coordinates[:, 2] <= self.size[2])*(coordinates[:, 2] >= 0)
-        indices = nonzero(in_x*in_y*in_z)[0]
+        inside = (coordinates <= self.size)*(coordinates >= 0)
+        indices = nonzero(all(inside, axis=1))[0]
         return indices
 
     def get_material(self, coordinates):
         """ Получить список веществ """
-        material = full(coordinates.shape[0], self.material_index, uint8)
+        material = full(coordinates.shape[0], self.material, uint8)
         for subject in self.subjects:
-            off_subjects = nonzero(material == self.material_index)[0]
+            off_subjects = nonzero(material == self.material)[0]
             coordinates_off_subjects = coordinates[off_subjects]
             inside_subject = subject.inside(coordinates_off_subjects)
             subjects_material = subject.get_material_indices(coordinates_off_subjects[inside_subject])
@@ -59,35 +55,43 @@ class Subject:
     
     [euler_angles = (alpha, beta, gamma)] = radian
     
-    [material_index] = uint[:]
+    [material] = uint[:]
     """
 
-    def __init__(self, coordinates, size, euler_angles, material_index):
+    def __init__(self, coordinates, size, material, euler_angles=None, rotation_center=None):
         self.coordinates = asarray(coordinates)
         self.size = asarray(size)
+        self.material = material
+        self.rotated = False
+        if euler_angles is not None:
+            self.rotate(euler_angles, rotation_center)
+
+    def rotate(self, euler_angles, rotation_center=None):
+        self.rotated = True
         self.euler_angles = asarray(euler_angles)
-        self.material_index = material_index
-        self.R = asarray(culculate_R(self.euler_angles))
+        if rotation_center is None:
+            rotation_center = asarray(self.size/2)
+        self.rotation_center = rotation_center
+        self.R = asarray(culculate_R_euler(self.euler_angles))
 
     def convert_to_local_coordinates(self, coordinates):
         """ Преобразовать в локальные координаты """
-        coordinates[:, 0] -= self.coordinates[0]
-        coordinates[:, 1] -= self.coordinates[1]
-        coordinates[:, 2] -= self.coordinates[2]
-        rotating_the_coordinates(coordinates, self.R)
+        coordinates -= self.coordinates
+        if self.rotated:
+            coordinates -= self.rotation_center
+            rotating_the_coordinates(coordinates, self.R)
+            coordinates += self.rotation_center
 
     def inside(self, coordinates):
         """ Список попавших внутрь объекта с преобразованием координат """
         self.convert_to_local_coordinates(coordinates)
-        in_x = (coordinates[:, 0] <= self.size[0])*(coordinates[:, 0] >= 0)
-        in_y = (coordinates[:, 1] <= self.size[1])*(coordinates[:, 1] >= 0)
-        in_z = (coordinates[:, 2] <= self.size[2])*(coordinates[:, 2] >= 0)
-        indices = nonzero(in_x*in_y*in_z)[0]
+        inside = (coordinates <= self.size)*(coordinates >= 0)
+        indices = nonzero(all(inside, axis=1))[0]
         return indices
 
     def get_material_indices(self, coordinates):
         """ Получить индексы материала """
-        material = full(coordinates.shape[0], self.material_index, dtype=uint8)
+        material = full(coordinates.shape[0], self.material, dtype=uint8)
         return material
 
 
@@ -102,17 +106,10 @@ class Phantom(Subject):
     [voxel_size] = cm
     """
 
-    def __init__(self, coordinates, material, voxel_size):
-        self.coordinates = asarray(coordinates)
-        self.material = asarray(material)
+    def __init__(self, coordinates, material, voxel_size, euler_angles=None, rotation_center=None):
+        size = asarray(material.shape)*voxel_size
+        super().__init__(coordinates, size, material, euler_angles, rotation_center)
         self.voxel_size = voxel_size
-        self.size = asarray(self.material.shape)*self.voxel_size
-
-    def convert_to_local_coordinates(self, coordinates):
-        """ Преобразовать в локальные координаты """
-        coordinates[:, 0] -= self.coordinates[0]
-        coordinates[:, 1] -= self.coordinates[1]
-        coordinates[:, 2] -= self.coordinates[2]
 
     def get_material_indices(self, coordinates):
         coordinates = coordinates/self.voxel_size
@@ -135,17 +132,17 @@ class Collimator(Subject):
     
     [septa] = cm
     
-    [material_index] = uint
+    [material] = uint
     """
 
-    def __init__(self, coordinates, size, euler_angles, material_index, hole_diameter, septa):
-        super().__init__(coordinates, size, euler_angles, material_index)
+    def __init__(self, coordinates, size, material, hole_diameter, septa, euler_angles=None, rotation_center=None):
+        super().__init__(coordinates, size, material, euler_angles, rotation_center)
         self.hole_diameter = hole_diameter
         self.septa = septa
         self.holes_centers = get_centers(self.size, self.hole_diameter, self.septa)
 
     def get_material_indices(self, coordinates):
-        material = full(coordinates.shape[0], self.material_index, dtype=uint8)
+        material = super().get_material_indices(coordinates)
         collimated = get_collimated(coordinates, self.holes_centers, self.hole_diameter)
         material[collimated] = 0
         return material

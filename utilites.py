@@ -3,7 +3,18 @@ from numpy import array, cos, sin, sqrt, dot, empty, pi
 from random import random
 
 
-def culculate_R(euler_angles):
+def culculate_R(axis, angle):
+    x, y, z = axis
+
+    R = array([
+        [cos(angle) + (1 - cos(angle))*x**2, (1 - cos(angle))*x*y - sin(angle)*z, (1 - cos(angle))*x*z + sin(angle)*y],
+        [(1 - cos(angle))*y*x + sin(angle)*z, cos(angle) + (1 - cos(angle))*y**2, (1 - cos(angle))*y*z - sin(angle)*x],
+        [(1 - cos(angle))*z*x - sin(angle)*y, (1 - cos(angle))*z*y + sin(angle)*x, cos(angle) + (1 - cos(angle)*z**2)]
+    ])
+
+    return R
+
+def culculate_R_euler(euler_angles):
     alpha, beta, gamma = euler_angles
 
     Rx = array([
