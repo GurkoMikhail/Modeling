@@ -38,6 +38,14 @@ materials_list = {
     'Lead':                             5,
 }
 
+materials_reverse_list = {
+    0:        'Air, Dry (near sea level)',
+    1:                      'Lung Tissue',
+    2:                     'Tissue, Soft',
+    3:    'B-100 Bone-Equivalent Plastic',
+    4:                    'Sodium Iodide',
+    5:                             'Lead',
+}
 
 process_indices = {
     'CoherentScatter': 1,
