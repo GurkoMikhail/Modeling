@@ -20,10 +20,13 @@ class Modeling:
         self.time_step = 1
         self.file_name = f'{self}'
         self.subject = None
+        self.distibution_voxel_size = 0.4
         self.args = [
             'solid_angle',
             'time_step',
-            'file_name'
+            'file_name',
+            'subject',
+            'distibution_voxel_size'
             ]
 
         for arg in self.args:
@@ -36,18 +39,18 @@ class Modeling:
             t = round(t, 4)
             dt = round(t + self.time_step, 4)
             flow_name = f'{(t, dt)}'
-            flow = self.source.generate_particles_flow(self.space, self.time_step)
+            flow = self.source.generate_particles_flow(self.space, self.time_step, flow_name)
             flow.off_the_solid_angle(*self.solid_angle)
             print(f'Start flow for t = {t, dt}')
             start = time()
             flow.run()
             print(f'Finish flow for t = {t, dt}')
             print(f'Time left {time() - start}')
-            data = self.data_structuring(flow)
-            self.save_data(data, flow_name)
-            self.save_data(self.source.particles_emitted, 'Source distribution')
+            self.save_flow_data(flow)
+            if self.subject is not None:
+                self.save_dose_distribution(flow)
 
-    def data_structuring(self, flow):
+    def save_flow_data(self, flow):
         data = {
             'Coordinates': [],
             'Energy transfer': [],
@@ -76,19 +79,53 @@ class Modeling:
         data['Energy transfer'] = np.concatenate(data['Energy transfer'])
         data['Emission time'] = np.concatenate(data['Emission time'])
         data['Emission coordinates'] = np.concatenate(data['Emission coordinates'])
-        return data
-
-    def save_data(self, data, name):
+        
         file = File(f'Output data/{self.file_name}', 'a')
-        if type(data) is dict:
-            group = file.create_group(f'Flows/{name}')
-            for key in data.keys():
-                group.create_dataset(str(key), data=data[key])
+        try:
+            group = file.create_group(f'Flows/{flow.name}')
+        except Exception:
+            group = file['Flows']
+        for key in data.keys():
+            group.create_dataset(str(key), data=data[key])
+
+    def save_dose_distribution(self, flow):
+        file = File(f'Output data/{self.file_name}', 'a')
+        try:
+            group = file.create_group('Dose distribution')
+        except Exception:
+            group = file['Dose distribution']
+            volume = group['Volume']
         else:
-            if str(name) in file:
-                file[str(name)][:] = data
-            else:
-                file.create_dataset(str(name), data=data)
+            volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distibution_voxel_size).astype(np.uint), dtype=np.float64))
+            group.create_dataset('Voxel size', data=self.distibution_voxel_size)
+        coordinates = []
+        energy_transfer = []
+        for dat in flow.interaction.data:
+                coordinates.append(dat['Coordinates'])
+                energy_transfer.append(dat['Energy transfer'])
+        coordinates = np.concatenate(coordinates)
+        energy_transfer = np.concatenate(energy_transfer)
+        flow_volume = np.histogramdd(
+            sample=coordinates,
+            bins=(self.space.size/self.distibution_voxel_size).astype(np.int),
+            range=((0, self.space.size[0]), (0, self.space.size[1]), (0, self.space.size[2])),
+            weights=energy_transfer
+        )[0]
+        volume[:] += flow_volume
+        file.close()
+
+    def save_source_distribution(self, flow):
+        file = File(f'Output data/{self.file_name}', 'a')
+        try:
+            group = file.create_group('Source distribution')
+        except Exception:
+            group = file['Source distribution']
+            volume = group['Volume']
+        else:
+            volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distibution_voxel_size).astype(np.uint)))
+            group.create_dataset('Voxel size', data=self.distibution_voxel_size)
+        flow_volume = 0
+        volume += flow_volume
         file.close()
 
     def save_modeling_parameters(self):
@@ -115,6 +152,9 @@ class Modeling:
                 if parameter_name not in ('particles_emitted', 'timer', 'coordinates_table', 'size', 'rng_dist', 'rng_time', 'rng_dir', 'rng_ddist'):
                     sourceParameters.create_dataset(parameter_name, data=value)
 
+            if subject is not None:
+                subject = self.subject.__class__.__name__
+            group.create_dataset('Subject', data=subject)
             group.create_dataset('Interactions', data=Photons.processes)
         finally:
             file.close()
@@ -123,9 +163,10 @@ class Modeling:
 class ParticleFlow:
     """ Класс потока частиц """
 
-    def __init__(self, particles, space):
+    def __init__(self, particles, space, name):
         self.particles = particles
         self.space = space
+        self.name = name
         self.interaction = Interaction(particles, space)
         self.left_the_space = 0
         self.step = 1
@@ -191,7 +232,6 @@ class Source:
         self.initial_activity = np.asarray(activity)
         self.distribution = np.asarray(distribution)
         self.distribution /= np.sum(self.distribution)
-        self.particles_emitted = np.zeros_like(self.distribution, dtype=uint64)
         self.voxel_size = voxel_size
         self.size = np.asarray(self.distribution.shape)*self.voxel_size
         self.radiation_type = radiation_type
@@ -232,17 +272,11 @@ class Source:
     def nuclei_number(self):
         return self.activity*self.half_life/log(2)
 
-    def save_particles_emitted(self, coordinates):
-        coordinates = coordinates/self.voxel_size
-        coordinates = coordinates.astype(uint64)
-        self.particles_emitted[(coordinates[:, 0], coordinates[:, 1], coordinates[:, 2])] += 1
-
     def generate_coordinates(self, n):
         p = self.distribution.ravel()
         coordinates = self.rng_dist.choice(self.coordinates_table, n, p=p)
         dcoordinates = self.rng_ddist.uniform(0, self.voxel_size, coordinates.shape)
         coordinates += dcoordinates
-        self.save_particles_emitted(coordinates)
         if self.rotated:
             coordinates -= self.rotation_center
             utilites.rotating_the_coordinates(coordinates, self.R)
@@ -272,9 +306,9 @@ class Source:
         particles = Photons(energies, directions, coordinates, emission_time)
         return particles
 
-    def generate_particles_flow(self, space, time_step):
+    def generate_particles_flow(self, space, time_step, name):
         n = int(self.nuclei_number*(1 - 2**(-time_step/self.half_life)))
         particles = self.generate_particles(n)
-        particles_flow = ParticleFlow(particles, space)
+        particles_flow = ParticleFlow(particles, space, name)
         self.timer += time_step
         return particles_flow
