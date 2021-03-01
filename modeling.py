@@ -4,6 +4,7 @@ from numpy import pi, sqrt, cos, sin, log, uint64
 import utilites
 from particles import Photons
 from processes import Interaction
+from materials import materials_reverse_list
 from time import time
 
 
@@ -16,9 +17,12 @@ class Modeling:
         self.space = space
         self.source = source
         self.solid_angle = ((0, -1, 0), 10*pi/180)
+        self.time_step = 1
         self.file_name = f'{self}'
+        self.subject = None
         self.args = [
             'solid_angle',
+            'time_step',
             'file_name'
             ]
 
@@ -26,12 +30,13 @@ class Modeling:
             if arg in kwds:
                 setattr(self, arg, kwds[arg])
 
-    def start(self, total_time, time_step=1):
-        for t in np.arange(self.source.timer, total_time, time_step):
+    def start(self, total_time):
+        self.save_modeling_parameters()
+        for t in np.arange(self.source.timer, total_time, self.time_step):
             t = round(t, 4)
-            dt = round(t + time_step, 4)
+            dt = round(t + self.time_step, 4)
             flow_name = f'{(t, dt)}'
-            flow = self.source.generate_particles_flow(self.space, time_step)
+            flow = self.source.generate_particles_flow(self.space, self.time_step)
             flow.off_the_solid_angle(*self.solid_angle)
             print(f'Start flow for t = {t, dt}')
             start = time()
@@ -42,14 +47,14 @@ class Modeling:
             self.save_data(data, flow_name)
             self.save_data(self.source.particles_emitted, 'Source distribution')
 
-    def data_structuring(self, flow, subject=None):
+    def data_structuring(self, flow):
         data = {
             'Coordinates': [],
             'Energy transfer': [],
             'Emission time': [],
             'Emission coordinates': []
         }
-        if subject is None:
+        if self.subject is None:
             for dat in flow.interaction.data:
                 data['Coordinates'].append(dat['Coordinates'])
                 data['Energy transfer'].append(dat['Energy transfer'])
@@ -61,7 +66,7 @@ class Modeling:
                 energy_transfer = dat['Energy transfer']
                 emission_time = dat['Emission time']
                 emission_coordinates = dat['Emission coordinates']
-                inside_subject = subject.inside(coordinates)
+                inside_subject = self.subject.inside(coordinates)
                 if inside_subject.size > 0:
                     data['Coordinates'].append(coordinates[inside_subject])
                     data['Energy transfer'].append(energy_transfer[inside_subject])
@@ -85,6 +90,34 @@ class Modeling:
             else:
                 file.create_dataset(str(name), data=data)
         file.close()
+
+    def save_modeling_parameters(self):
+        file = File(f'Output data/{self.file_name}', 'a')
+        try:
+            group = file.create_group('Modeling parameters')
+        except Exception:
+            print('Параметры уже записаны')
+        else:
+            solidAngle = group.create_group('Solid angle')
+            solidAngle.create_dataset('Vector', data=self.solid_angle[0])
+            solidAngle.create_dataset('Angle', data=self.solid_angle[1])
+
+            spaceParameters = group.create_group('Space')
+            spaceParameters.create_dataset('size', data=self.space.size)
+            spaceParameters.create_dataset('material', data=materials_reverse_list[self.space.material])
+            for subject in self.space.subjects:
+                subjectParameters = spaceParameters.create_group(subject.__class__.__name__)
+                for parameter_name, value in subject.__dict__.items():
+                    subjectParameters.create_dataset(parameter_name, data=value)
+            
+            sourceParameters = group.create_group('Source')
+            for parameter_name, value in self.source.__dict__.items():
+                if parameter_name not in ('particles_emitted', 'timer', 'coordinates_table', 'size', 'rng_dist', 'rng_time', 'rng_dir', 'rng_ddist'):
+                    sourceParameters.create_dataset(parameter_name, data=value)
+
+            group.create_dataset('Interactions', data=Photons.processes)
+        finally:
+            file.close()
 
 
 class ParticleFlow:
