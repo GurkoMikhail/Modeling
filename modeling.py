@@ -39,16 +39,26 @@ class Modeling:
             t = round(t, 4)
             dt = round(t + self.time_step, 4)
             flow_name = f'{(t, dt)}'
-            flow = self.source.generate_particles_flow(self.space, self.time_step, flow_name)
-            flow.off_the_solid_angle(*self.solid_angle)
-            print(f'Start flow for t = {t, dt}')
-            start = time()
-            flow.run()
-            print(f'Finish flow for t = {t, dt}')
-            print(f'Time left {time() - start}')
-            self.save_flow_data(flow)
-            if self.subject is not None:
-                self.save_dose_distribution(flow)
+            if self.check_flow_in_file(flow_name):
+                self.source.timer += dt
+            else:
+                flow = self.source.generate_particles_flow(self.space, self.time_step, flow_name)
+                flow.off_the_solid_angle(*self.solid_angle)
+                print(f'Start flow for t = {t, dt}')
+                start = time()
+                flow.run()
+                print(f'Finish flow for t = {t, dt}')
+                print(f'Time left {time() - start}')
+                self.save_flow_data(flow)
+                if self.subject is not None:
+                    self.save_dose_distribution(flow)
+
+    def check_flow_in_file(self, flow_name):
+        file = File(f'Output data/{self.file_name}', 'a')
+        if 'Flows' in file:
+            flows = file['Flows']
+            return flow_name in flows
+        return False
 
     def save_flow_data(self, flow):
         data = {
@@ -65,7 +75,7 @@ class Modeling:
                 data['Emission coordinates'].append(dat['Emission coordinates'])
         else:
             for dat in flow.interaction.data:
-                coordinates = dat['Coordinates']
+                coordinates = np.copy(dat['Coordinates'])
                 energy_transfer = dat['Energy transfer']
                 emission_time = dat['Emission time']
                 emission_coordinates = dat['Emission coordinates']
