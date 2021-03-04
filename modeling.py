@@ -1,6 +1,6 @@
 from h5py import File
 import numpy as np
-from numpy import pi, sqrt, cos, sin, log, uint64
+from numpy import pi, sqrt, cos, sin, log
 import utilites
 from particles import Photons
 from processes import Interaction
@@ -35,23 +35,16 @@ class Modeling:
 
     def start(self, total_time):
         self.save_modeling_parameters()
-        for t in np.arange(self.source.timer, total_time, self.time_step):
-            t = round(t, 4)
-            dt = round(t + self.time_step, 4)
+        for t in np.arange(0, total_time, self.time_step):
+            t = round(t, 5)
+            dt = round(t + self.time_step, 5)
             flow_name = f'{(t, dt)}'
             if self.check_flow_in_file(flow_name):
                 self.source.timer += dt
             else:
-                flow = self.source.generate_particles_flow(self.space, self.time_step, flow_name)
-                flow.off_the_solid_angle(*self.solid_angle)
-                print(f'Start flow for t = {t, dt}')
-                start = time()
+                flow = self.source.generate_particles_flow(self.space, self.time_step, self.solid_angle)
                 flow.run()
-                print(f'Finish flow for t = {t, dt}')
-                print(f'Time left {time() - start}')
-                self.save_flow_data(flow)
-                if self.subject is not None:
-                    self.save_dose_distribution(flow)
+                self.save_data(flow)
 
     def check_flow_in_file(self, flow_name):
         file = File(f'Output data/{self.file_name}', 'a')
@@ -59,6 +52,11 @@ class Modeling:
             flows = file['Flows']
             return flow_name in flows
         return False
+
+    def save_data(self, flow):
+        self.save_flow_data(flow)
+        if self.subject is not None:
+            self.save_dose_distribution(flow)
 
     def save_flow_data(self, flow):
         data = {
@@ -173,20 +171,24 @@ class Modeling:
 class ParticleFlow:
     """ Класс потока частиц """
 
-    def __init__(self, particles, space, name):
+    def __init__(self, particles, space, solid_angle, name):
         self.particles = particles
         self.space = space
+        self.solid_angle = solid_angle
         self.name = name
         self.interaction = Interaction(particles, space)
         self.left_the_space = 0
         self.step = 1
         self.min_energy = 0
 
-    def low_energy(self, energy):
-        indices = np.nonzero(energy <= self.min_energy)[0]
+    def low_energy(self):
+        indices = np.nonzero(self.particles.energy <= self.min_energy)[0]
         return indices
         
-    def off_the_solid_angle(self, vector, angle):
+    def off_the_solid_angle(self):
+        if self.solid_angle is None:
+            return []
+        vector, angle = self.solid_angle
         cos_alpha = vector[0]*self.particles.direction[:, 0]
         cos_alpha += vector[1]*self.particles.direction[:, 1]
         cos_alpha += vector[2]*self.particles.direction[:, 2]
@@ -197,7 +199,7 @@ class ParticleFlow:
     @property
     def invalid_particles(self):
         indices = []
-        indices.append(self.low_energy(self.particles.energy))
+        indices.append(self.low_energy())
         indices.append(self.space.outside(self.particles.coordinates))
         indices = np.concatenate(indices)
         return indices
@@ -213,11 +215,16 @@ class ParticleFlow:
         self.interaction.apply(self.valid_particles)
         self.particles.delete(self.invalid_particles)
         self.step += 1
-    
+
     def run(self):
         """ Реализация работы процесса """
+        self.off_the_solid_angle()
+        print(f'Start flow {self.name}')
+        start = time()
         while self.particles.count:
                 self.next_step()
+        print(f'Finish flow flow {self.name}')
+        print(f'Time left {time() - start}')
 
 
 class Source:
@@ -316,9 +323,11 @@ class Source:
         particles = Photons(energies, directions, coordinates, emission_time)
         return particles
 
-    def generate_particles_flow(self, space, time_step, name):
+    def generate_particles_flow(self, space, time_step, solid_angle, name=None):
         n = int(self.nuclei_number*(1 - 2**(-time_step/self.half_life)))
         particles = self.generate_particles(n)
-        particles_flow = ParticleFlow(particles, space, name)
+        if name is None:
+            name = f'{(round(self.timer, 5), round(self.timer + time_step, 5))}'
+        particles_flow = ParticleFlow(particles, space, solid_angle, name)
         self.timer += time_step
         return particles_flow
