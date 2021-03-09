@@ -48,26 +48,28 @@ materials_reverse_list = {
 }
 
 process_indices = {
-    'CoherentScatter': 1,
+    'CoherentScattering': 1,
     'ComptonScattering': 2,
     'PhotoelectricEffect': 3
 }
 
 
-def get_lac(material, energy, processes):
+def get_lac(materials, energy, processes):
     lac_out = np.zeros((len(processes), energy.size))
-    for m in np.unique(material):
-        lac = lac_table[m]
-        indices = np.nonzero(material == m)[0]
+    for material in np.unique(materials):
+        lac = lac_table[material]
+        indices = np.nonzero(materials == material)[0]
         for i, process in enumerate(processes):
             process_index = process_indices[process.__class__.__name__]
             lac_out[i, indices] = np.interp(energy[indices], lac[:, 0], lac[:, process_index])
     return lac_out
 
-def get_total_lac(material, energy, processes):
-    max_lac = 0
-    lac = lac_table[material]
-    for i, process in enumerate(processes):
-        process_index = process_indices[process.__class__.__name__]
-        max_lac += np.interp(energy, lac[:, 0], lac[:, process_index])
-    return max_lac
+def get_max_lac(materials, energy, processes):
+    total_lac = np.zeros((materials.size, energy.size))
+    for i, material in enumerate(materials):
+        lac = lac_table[material]
+        for process in processes:
+            process_index = process_indices[process.__class__.__name__]
+            total_lac[i] += np.interp(energy, lac[:, 0], lac[:, process_index])
+    return np.sum(total_lac, axis=0)
+
