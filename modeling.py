@@ -42,7 +42,7 @@ class Modeling:
             if self.check_flow_in_file(flow_name):
                 self.source.timer = dt
             else:
-                flow = self.source.generate_particles_flow(self.space, self.time_step, self.solid_angle, flow_name)
+                flow = self.source.generate_particles_flow(self.space, self.time_step, self.solid_angle, self.file_name)
                 flow.run()
                 self.save_data(flow)
 
