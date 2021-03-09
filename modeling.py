@@ -163,7 +163,7 @@ class Modeling:
             if subject is not None:
                 subject = self.subject.__class__.__name__
             group.create_dataset('Subject', data=subject)
-            group.create_dataset('Interactions', data=Photons.processes)
+            # group.create_dataset('Interactions', data=Photons.processes)
         finally:
             file.close()
 
@@ -291,7 +291,7 @@ class Source:
 
     def generate_coordinates(self, n):
         p = self.distribution.ravel()
-        coordinates = self.rng_dist.choice(self.coordinates_table, n, p=p)
+        coordinates = self.coordinates_table[self.rng_dist.choice(np.arange(p.size), n, p=p)]
         dcoordinates = self.rng_ddist.uniform(0, self.voxel_size, coordinates.shape)
         coordinates += dcoordinates
         if self.rotated:
