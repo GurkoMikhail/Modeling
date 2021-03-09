@@ -259,10 +259,10 @@ class Source:
         self.rotated = False
         if euler_angles is not None:
             self.rotate(euler_angles, rotation_center)
-        self.rng_dist = np.random.RandState()
-        self.rng_ddist = np.random.RandState()
-        self.rng_time = np.random.RandState()
-        self.rng_dir = np.random.RandState()
+        self.rng_dist = np.random.RandomState()
+        self.rng_ddist = np.random.RandomState()
+        self.rng_time = np.random.RandomState()
+        self.rng_dir = np.random.RandomState()
 
     def rotate(self, euler_angles, rotation_center=None):
         self.rotated = True
