@@ -66,10 +66,10 @@ def start_new_projection(angles, time):
         modeling.start(time)
 
 if __name__ == '__main__':
-    time = 1.
-    # angles = np.linspace(-np.pi/4, 3*np.pi/4, 32)
-    angles = [-np.pi/4, -np.pi/2, 0, np.pi/4]
-    processes_number = 8
+    time = 10.
+    angles = np.linspace(-np.pi/4, 3*np.pi/4, 32)
+    # angles = [-np.pi/4, -np.pi/2, 0, np.pi/4]
+    processes_number = 32
 
     # time_step = 1
     # start_time = np.arange(0, time, time_step)
@@ -95,4 +95,4 @@ if __name__ == '__main__':
 
     for process in processes:
         process.join()
-    print('End!')
+    # print('End!')
