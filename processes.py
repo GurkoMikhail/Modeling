@@ -32,7 +32,7 @@ class Interaction:
 
     def choose(self, selectable, probability):
         indices = []
-        rnd = self.rng_choose.random(probability[0].size)
+        rnd = self.rng_choose.rand(probability[0].size)
         p0 = 0
         for p in probability:
             p1 = p0 + p
@@ -113,7 +113,7 @@ class ComptonScattering(Process):
 
     def get_phi(self, interacted):
         """ Получить угл рассеяния - phi """
-        phi = pi*(self.rng_phi.random(interacted.size)*2 - 1)
+        phi = pi*(self.rng_phi.rand(interacted.size)*2 - 1)
         return phi
 
     def culculate_energy_change(self, theta, interacted):
