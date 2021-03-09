@@ -41,6 +41,14 @@ class Space:
             material[off_subjects[inside_subject]] = subjects_material
         return material
 
+    @property
+    def materials_list(self):
+        materials = []
+        for subject in self.subjects:
+            materials.extend(np.unique(subject.material))
+        materials = np.asarray(materials)
+        return np.unique(materials)
+
     def add_subject(self, subject):
         """ Добавить объект """
         self.subjects.append(subject)
