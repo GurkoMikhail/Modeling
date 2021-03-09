@@ -40,7 +40,7 @@ class Modeling:
             dt = round(t + self.time_step, 5)
             flow_name = f'{(t, dt)}'
             if self.check_flow_in_file(flow_name):
-                self.source.timer += self.time_step
+                self.source.timer = dt
             else:
                 flow = self.source.generate_particles_flow(self.space, self.time_step, self.solid_angle)
                 flow.run()
