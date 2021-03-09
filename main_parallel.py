@@ -62,14 +62,14 @@ def start_new_projection(angles, time):
             source.coordinates=phantom.coordinates
         phantom.rotate((angle, 0, 0))
         source.rotate((angle, 0, 0))
-        modeling.file_name = f'efg3_fix {round(angle/np.pi*180, 1)} deg projection.hdf'
+        modeling.file_name = f'efg3_fix {round(angle/np.pi*180, 1)} deg.hdf'
         modeling.start(time)
 
 if __name__ == '__main__':
     time = 1.
-    # angles = np.linspace(-np.pi/4, 3*np.pi/4, 32)
-    angles = [-np.pi/4, -np.pi/2, 0, np.pi/4]
-    processes_number = 4
+    angles = np.linspace(-np.pi/4, 3*np.pi/4, 32)
+    # angles = [-np.pi/4, -np.pi/2, 0, np.pi/4]
+    processes_number = 32
 
     # time_step = 1
     # start_time = np.arange(0, time, time_step)
