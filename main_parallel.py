@@ -69,7 +69,7 @@ if __name__ == '__main__':
     time = 1.
     # angles = np.linspace(-np.pi/4, 3*np.pi/4, 32)
     angles = [-np.pi/4, -np.pi/2, 0, np.pi/4]
-    processes_number = 4
+    processes_number = 2
 
     # time_step = 1
     # start_time = np.arange(0, time, time_step)
