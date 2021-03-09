@@ -14,9 +14,9 @@ def get_collimated(coordinates, hole_centers, hole_diameter):
 def find_collimated(collimated, coordinates, hole_centers, hole_diameter):
     a = sqrt(3)/4
     a_2 = a/2
-    for i, coord in enumerate(coordinates):
-        x0 = coord[0]
-        y0 = coord[1]
+    for i in range(coordinates.shape[0]):
+        x0 = coordinates[i, 0]
+        y0 = coordinates[i, 1]
         for hole_center in hole_centers:
             x = hole_center[0]
             y = hole_center[1]
