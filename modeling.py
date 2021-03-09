@@ -42,7 +42,7 @@ class Modeling:
             if self.check_flow_in_file(flow_name):
                 self.source.timer = dt
             else:
-                flow = self.source.generate_particles_flow(self.space, self.time_step, self.solid_angle, self.file_name)
+                flow = self.source.generate_particles_flow(self.space, self.time_step, self.solid_angle)
                 flow.run()
                 self.save_data(flow)
 
@@ -219,12 +219,12 @@ class ParticleFlow:
     def run(self):
         """ Реализация работы процесса """
         self.off_the_solid_angle()
-        print(f'Start flow {self.name}')
+        # print(f'Start flow {self.name}')
         start = time()
         while self.particles.count:
                 self.next_step()
-        print(f'Finish flow flow {self.name}')
-        print(f'Time left {time() - start}')
+        # print(f'Finish flow flow {self.name}')
+        # print(f'Time left {time() - start}')
 
 
 class Source:
@@ -327,10 +327,7 @@ class Source:
         n = int(self.nuclei_number*(1 - 2**(-time_step/self.half_life)))
         particles = self.generate_particles(n)
         if name is None:
-            name = ''
-        else:
-            name = name + ' '
-        name = name + f'{(round(self.timer, 5), round(self.timer + time_step, 5))}'
+            name = f'{(round(self.timer, 5), round(self.timer + time_step, 5))}'
         particles_flow = ParticleFlow(particles, space, solid_angle, name)
         self.timer += time_step
         return particles_flow
