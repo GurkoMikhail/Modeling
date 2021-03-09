@@ -219,12 +219,12 @@ class ParticleFlow:
     def run(self):
         """ Реализация работы процесса """
         self.off_the_solid_angle()
-        print(f'Start flow {self.name}')
+        # print(f'Start flow {self.name}')
         start = time()
         while self.particles.count:
                 self.next_step()
-        print(f'Finish flow flow {self.name}')
-        print(f'Time left {time() - start}')
+        # print(f'Finish flow flow {self.name}')
+        # print(f'Time left {time() - start}')
 
 
 class Source:
