@@ -42,7 +42,7 @@ class Modeling:
             if self.check_flow_in_file(flow_name):
                 self.source.timer = dt
             else:
-                flow = self.source.generate_particles_flow(self.space, self.time_step, self.solid_angle)
+                flow = self.source.generate_particles_flow(self.space, self.time_step, self.solid_angle, flow_name)
                 flow.run()
                 self.save_data(flow)
 
@@ -163,7 +163,7 @@ class Modeling:
             if subject is not None:
                 subject = self.subject.__class__.__name__
             group.create_dataset('Subject', data=subject)
-            # group.create_dataset('Interactions', data=Photons.processes)
+            group.create_dataset('Interactions', data=[process.__class__.__name__ for process in Photons.processes])
         finally:
             file.close()
 
@@ -327,7 +327,10 @@ class Source:
         n = int(self.nuclei_number*(1 - 2**(-time_step/self.half_life)))
         particles = self.generate_particles(n)
         if name is None:
-            name = f'{(round(self.timer, 5), round(self.timer + time_step, 5))}'
+            name = ''
+        else:
+            name = name + ' '
+        name = name + f'{(round(self.timer, 5), round(self.timer + time_step, 5))}'
         particles_flow = ParticleFlow(particles, space, solid_angle, name)
         self.timer += time_step
         return particles_flow
