@@ -11,7 +11,7 @@ def start_new_projection(angles, time):
 
     phantom = np.load('Phantoms/ae3_fix.npy')
     phantom = Phantom(
-        coordinates=(1.05, (12.4 - 10.) + 5, -3.),
+        coordinates=(1.05, (12.4 - 10.) + 10, -3.),
         material=phantom,
         voxel_size=0.4
         )
