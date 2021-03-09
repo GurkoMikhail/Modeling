@@ -14,7 +14,7 @@ class Interaction:
         for process in self.particles.processes:
             self.processes.append(processes[process](particles))
         self.data = []
-        self.heaviest_material = np.array(5)
+        self.space_materials_list = self.space.materials_list
         self.rng_choose = np.random.default_rng()
         self.rng_free_path = np.random.default_rng()
 
@@ -26,7 +26,7 @@ class Interaction:
         return lac
 
     def get_free_path(self):
-        self.max_lac = materials.get_total_lac(self.heaviest_material, self.particles.energy, self.processes)
+        self.max_lac = materials.get_max_lac(self.space_materials_list, self.particles.energy, self.processes)
         free_path = self.rng_free_path.exponential(1/self.max_lac, self.particles.count)
         return free_path
 
@@ -90,6 +90,14 @@ class PhotoelectricEffect(Process):
         data.update({'Energy transfer': energy_change})
         return data
         
+
+class CoherentScattering(Process):
+    """ Класс когерентного рассеяния """
+    
+    def __init__(self, particles, **kwds):
+        super().__init__(particles, **kwds)
+        self.rng_phi = np.random.default_rng()
+
 
 class ComptonScattering(Process):
     """ Класс эффекта Комптона """
