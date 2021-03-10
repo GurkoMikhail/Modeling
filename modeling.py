@@ -17,12 +17,14 @@ class Modeling:
         self.space = space
         self.source = source
         self.solid_angle = ((0, -1, 0), 10*pi/180)
-        self.time_step = 1
+        self.start_time = 0.
+        self.time_step = 1.
         self.file_name = f'{self}'
         self.subject = None
         self.distibution_voxel_size = 0.4
         self.args = [
             'solid_angle',
+            'start_time',
             'time_step',
             'file_name',
             'subject',
@@ -35,7 +37,7 @@ class Modeling:
 
     def start(self, total_time):
         self.save_modeling_parameters()
-        for t in np.arange(0, total_time, self.time_step):
+        for t in np.arange(self.start_time, total_time, self.time_step):
             t = round(t, 5)
             dt = round(t + self.time_step, 5)
             flow_name = f'{(t, dt)}'
