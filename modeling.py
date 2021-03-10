@@ -18,7 +18,7 @@ class Modeling:
         self.source = source
         self.solid_angle = ((0, -1, 0), 10*pi/180)
         self.start_time = 0.
-        self.time_step = 1
+        self.time_step = 1.
         self.file_name = f'{self}'
         self.subject = None
         self.distibution_voxel_size = 0.4
@@ -37,6 +37,7 @@ class Modeling:
 
     def start(self, total_time):
         self.save_modeling_parameters()
+        self.source.timer = self.start_time
         for t in np.arange(self.start_time, total_time, self.time_step):
             t = round(t, 5)
             dt = round(t + self.time_step, 5)
@@ -52,7 +53,10 @@ class Modeling:
         file = File(f'Output data/{self.file_name}', 'a')
         if 'Flows' in file:
             flows = file['Flows']
-            return flow_name in flows
+            inside = flow_name in flows
+            file.close
+            return inside
+        file.close
         return False
 
     def save_data(self, flow):
@@ -259,7 +263,7 @@ class Source:
         self.radiation_type = radiation_type
         self.energy = energy
         self.half_life = half_life
-        self.timer = 0
+        self.timer = 0.
         self.coordinates_table = self.generate_coordinates_table()
         self.rotated = False
         if euler_angles is not None:
