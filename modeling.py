@@ -95,8 +95,8 @@ class Modeling:
             group = file.create_group(f'Flows/{flow.name}')
         except Exception:
             group = file[f'Flows/{flow.name}']
-            for key in data.keys():
-                group[str(key)] = data[key]
+            for key in group.keys():
+                group[key] = data[key]
         else:
             for key in data.keys():
                 group.create_dataset(str(key), data=data[key])
