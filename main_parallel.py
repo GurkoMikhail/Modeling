@@ -58,9 +58,6 @@ def start_new_projection(angles, time):
     
     while not angles.empty():
         angle = angles.get()
-        if angle == -np.pi/2:
-            phantom.coordinates=(1.05, (12.4 - 10.) + 10, -3.)
-            source.coordinates=phantom.coordinates
         phantom.rotate((angle, 0, 0))
         source.rotate((angle, 0, 0))
         modeling.file_name = f'efg3_fix {round(angle*np.pi/180, 1)} deg.hdf'
