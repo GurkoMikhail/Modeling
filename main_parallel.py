@@ -51,7 +51,6 @@ def start_new_projection(angles, time):
         space,
         source,
         solid_angle=((0, -1, 0), 15*np.pi/180),
-        start_time=0.01,
         time_step=0.01,
         subject=detector
         )
