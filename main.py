@@ -79,7 +79,7 @@ if __name__ == '__main__':
         source,
         solid_angle=((0, -1, 0), 10*np.pi/180),
         time_step=0.01,
-        file_name='efg3_fix 0.0 deg projection.hdf'
+        file_name='efg3_fix 1.5 deg.hdf'
         )
     # modeling.source.timer = 9.
 
