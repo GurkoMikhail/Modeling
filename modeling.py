@@ -92,9 +92,12 @@ class Modeling:
         try:
             group = file.create_group(f'Flows/{flow.name}')
         except Exception:
-            group = file['Flows']
-        for key in data.keys():
-            group.create_dataset(str(key), data=data[key])
+            group = file[f'Flows/{flow.name}']
+            for key in data.keys():
+                group[str(key)] = data[key]
+        else:
+            for key in data.keys():
+                group.create_dataset(str(key), data=data[key])
 
     def save_dose_distribution(self, flow):
         file = File(f'Output data/{self.file_name}', 'a')
