@@ -66,9 +66,8 @@ def withDecayTime(time, decayTime):
     timeWithDecay = np.zeros_like(time)
     countdownTime = 0.
     for i, t in enumerate(time):
-        if (t - countdownTime) <= decayTime:
-            timeWithDecay[i] = t + decayTime
-        else:
+        if (t - countdownTime) > decayTime:
             countdownTime = t
+        timeWithDecay[i] = countdownTime + decayTime
     return timeWithDecay
 
