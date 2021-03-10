@@ -15,8 +15,8 @@ class Interaction:
             self.processes.append(processes[process](particles))
         self.data = []
         self.space_materials_list = self.space.materials_list
-        self.rng_choose = np.random.RandomState()
-        self.rng_free_path = np.random.RandomState()
+        self.rng_choose = np.random.default_rng()
+        self.rng_free_path = np.random.default_rng()
 
     def get_lac(self, indices):
         coordinates = self.particles.coordinates[indices]
@@ -32,7 +32,7 @@ class Interaction:
 
     def choose(self, selectable, probability):
         indices = []
-        rnd = self.rng_choose.rand(probability[0].size)
+        rnd = self.rng_choose.random(probability[0].size)
         p0 = 0
         for p in probability:
             p1 = p0 + p
@@ -96,7 +96,7 @@ class CoherentScattering(Process):
     
     def __init__(self, particles, **kwds):
         super().__init__(particles, **kwds)
-        self.rng_phi = np.random.RandomState()
+        self.rng_phi = np.random.default_rng()
 
 
 class ComptonScattering(Process):
@@ -104,7 +104,7 @@ class ComptonScattering(Process):
 
     def __init__(self, particles, **kwds):
         super().__init__(particles, **kwds)
-        self.rng_phi = np.random.RandomState()
+        self.rng_phi = np.random.default_rng()
 
     def get_theta(self, interacted):
         """ Получить угл рассеяния - theta """
@@ -113,7 +113,7 @@ class ComptonScattering(Process):
 
     def get_phi(self, interacted):
         """ Получить угл рассеяния - phi """
-        phi = pi*(self.rng_phi.rand(interacted.size)*2 - 1)
+        phi = pi*(self.rng_phi.random(interacted.size)*2 - 1)
         return phi
 
     def culculate_energy_change(self, theta, interacted):

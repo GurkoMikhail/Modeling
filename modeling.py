@@ -268,10 +268,10 @@ class Source:
         self.rotated = False
         if euler_angles is not None:
             self.rotate(euler_angles, rotation_center)
-        self.rng_dist = np.random.RandomState()
-        self.rng_ddist = np.random.RandomState()
-        self.rng_time = np.random.RandomState()
-        self.rng_dir = np.random.RandomState()
+        self.rng_dist = np.random.default_rng()
+        self.rng_ddist = np.random.default_rng()
+        self.rng_time = np.random.default_rng()
+        self.rng_dir = np.random.default_rng()
 
     def rotate(self, euler_angles, rotation_center=None):
         self.rotated = True
@@ -311,12 +311,12 @@ class Source:
         return coordinates
 
     def generate_emission_time(self, n):
-        emission_time = self.rng_time.rand(n) + self.timer
+        emission_time = self.rng_time.random(n) + self.timer
         return emission_time
 
     def generate_directions(self, n):
-        a1 = self.rng_dir.rand(n)
-        a2 = self.rng_dir.rand(n)
+        a1 = self.rng_dir.random(n)
+        a2 = self.rng_dir.random(n)
         cos_alpha = 1 - 2*a1
         sq = sqrt(1 - cos_alpha**2)
         cos_beta = sq*cos(2*pi*a2)
