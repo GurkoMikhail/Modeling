@@ -60,3 +60,15 @@ def generate_directions(n):
         directions[i] = (cos_alpha, cos_beta, cos_gamma)
     return directions
 
+
+@jit(nopython=True, cache=True)
+def withDecayTime(time, decayTime):
+    timeWithDecay = np.zeros_like(time)
+    countdownTime = 0.
+    for i, t in enumerate(time):
+        if (t - countdownTime) <= decayTime:
+            timeWithDecay[i] = t + decayTime
+        else:
+            countdownTime = t
+    return timeWithDecay
+
