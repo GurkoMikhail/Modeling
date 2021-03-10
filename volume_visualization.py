@@ -1,15 +1,26 @@
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import QWidget
 from PyQt5.uic import loadUi
-from numpy import array, asarray, load, min, max, arange, nonzero, uint32, float32, NaN
+from numpy import array, asarray, min, max
 from pyqtgraph.Qt import mkQApp
 from pyqtgraph import GradientEditorItem, makeRGBA
 from pyqtgraph.opengl import GLBoxItem, GLVolumeItem
+import h5py
 
-voxel_size = 0.4
 
-volume = load('Phantoms/efg3cut_source.npy').astype(float32)
-volume_size = array(volume.shape, dtype=float32)*voxel_size
+file_name = 'efg3_fix -27.6 deg.hdf'
+# file_name = 'efg3_fix front projection 5 sm.hdf'
+# file_name = 'efg3_fix front projection.hdf'
+# file_name = 'efg3_fix front projection 5 sm without collimator.hdf'
+
+# file = h5py.File(f'Processed data/{file_name}')
+file = h5py.File(f'Output data/{file_name}')
+dose_distribution = file['Dose distribution']
+volume = array(dose_distribution['Volume'])
+voxel_size = array(dose_distribution['Voxel size'])
+file.close()
+# volume = load('Phantoms/ae3_fix.npy')
+# voxel_size = 0.4
+volume_size = array(volume.shape)*voxel_size
 
 levels = [
     min(volume),
@@ -43,7 +54,6 @@ volumeViewWidget.pan(*volume_size/2)
 space_box = GLBoxItem()
 space_box.setSize(*volume_size)
 mainWindow.openGLWidget.addItem(space_box)
-
 
 mainWindow.show()
 QtGui.QApplication.exec()

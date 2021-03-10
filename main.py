@@ -79,11 +79,11 @@ if __name__ == '__main__':
         source,
         solid_angle=((0, -1, 0), 10*np.pi/180),
         time_step=0.01,
-        file_name='efg3_fix 0.0 deg projection test.hdf'
+        file_name='efg3_fix 0.0 deg projection.hdf'
         )
     # modeling.source.timer = 9.
 
-    # modeling.start(10.05)
+    modeling.start(10.05)
 
-    cProfile.run("modeling.start(0.1)", 'efg3_fix 0.0 deg projection test stats.txt')
+    # cProfile.run("modeling.start(0.1)", 'efg3_fix 0.0 deg projection test stats.txt')
 
