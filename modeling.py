@@ -172,7 +172,7 @@ class Modeling:
             if subject is not None:
                 subject = self.subject.__class__.__name__
             group.create_dataset('Subject', data=subject)
-            group.create_dataset(Photons.processes)
+            group.create_dataset('Processes', data=Photons.processes)
         finally:
             file.close()
 
