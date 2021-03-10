@@ -18,11 +18,7 @@ class Modeling:
         self.source = source
         self.solid_angle = ((0, -1, 0), 10*pi/180)
         self.start_time = 0.
-<<<<<<< HEAD
-        self.time_step = 1.
-=======
         self.time_step = 1
->>>>>>> f402ecec5a59f28fa79564de805d45b96f39a6e9
         self.file_name = f'{self}'
         self.subject = None
         self.distibution_voxel_size = 0.4
