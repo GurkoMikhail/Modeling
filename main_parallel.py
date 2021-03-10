@@ -51,7 +51,7 @@ def start_new_projection(angles, time):
         space,
         source,
         solid_angle=((0, -1, 0), 10*np.pi/180),
-        start_time=5.,
+        start_time=0.01,
         time_step=0.01,
         subject=detector
         )
@@ -63,13 +63,12 @@ def start_new_projection(angles, time):
             source.coordinates=phantom.coordinates
         phantom.rotate((angle, 0, 0))
         source.rotate((angle, 0, 0))
-        modeling.file_name = f'efg3_fix {round(angle/np.pi*180, 1)} deg.hdf'
+        modeling.file_name = f'efg3_fix {round(angle*np.pi/180, 1)} deg.hdf'
         modeling.start(time)
 
 if __name__ == '__main__':
     time = 10.
     angles = np.linspace(-np.pi/4, 3*np.pi/4, 32)
-    # angles = [-np.pi/4, -np.pi/2, 0, np.pi/4]
     processes_number = 32
 
     # time_step = 1
