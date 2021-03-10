@@ -18,7 +18,11 @@ class Modeling:
         self.source = source
         self.solid_angle = ((0, -1, 0), 10*pi/180)
         self.start_time = 0.
+<<<<<<< HEAD
         self.time_step = 1.
+=======
+        self.time_step = 1
+>>>>>>> f402ecec5a59f28fa79564de805d45b96f39a6e9
         self.file_name = f'{self}'
         self.subject = None
         self.distibution_voxel_size = 0.4
@@ -94,9 +98,12 @@ class Modeling:
         try:
             group = file.create_group(f'Flows/{flow.name}')
         except Exception:
-            group = file['Flows']
-        for key in data.keys():
-            group.create_dataset(str(key), data=data[key])
+            group = file[f'Flows/{flow.name}']
+            for key in group.keys():
+                group[key] = data[key]
+        else:
+            for key in data.keys():
+                group.create_dataset(str(key), data=data[key])
 
     def save_dose_distribution(self, flow):
         file = File(f'Output data/{self.file_name}', 'a')
@@ -221,12 +228,12 @@ class ParticleFlow:
     def run(self):
         """ Реализация работы процесса """
         self.off_the_solid_angle()
-        # print(f'Start flow {self.name}')
+        print(f'Start flow {self.name}')
         start = time()
         while self.particles.count:
                 self.next_step()
-        # print(f'Finish flow flow {self.name}')
-        # print(f'Time left {time() - start}')
+        print(f'Finish flow flow {self.name}')
+        print(f'Time left {time() - start}')
 
 
 class Source:
