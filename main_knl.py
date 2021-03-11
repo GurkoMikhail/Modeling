@@ -2,6 +2,7 @@ import numpy as np
 from subjects import Space, Phantom, Collimator, Detector
 from modeling import Source, Modeling
 import multiprocessing as mp
+from time import sleep
 
 def createProcess(time, lock):
     size = np.asarray((53.3, 60., 38.7))
@@ -69,6 +70,7 @@ if __name__ == '__main__':
         process = mp.Process(target=createProcess, args=(time, lock))
         processes.append(process)
         process.start()
+        sleep(5)
     for process in processes:
         process.join()
     print('End!')
