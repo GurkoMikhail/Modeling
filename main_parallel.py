@@ -2,8 +2,6 @@ import numpy as np
 from subjects import Space, Phantom, Collimator, Detector
 from modeling import Source, Modeling
 import multiprocessing as mp
-# from time import sleep
-# import cProfile
 
 def start_new_projection(angles, time):
     size = np.asarray((53.3, 70., 38.7))
@@ -67,16 +65,6 @@ if __name__ == '__main__':
     angles = np.linspace(np.pi/4, -3*np.pi/4, 32)
     processes_number = 32
 
-    # time_step = 1
-    # start_time = np.arange(0, time, time_step)
-    # finish_time = np.arange(time_step, time + time_step, time_step)
-    # times = np.column_stack((start_time, finish_time))
-
-    # queue = mp.Queue()
-    # for time in times:
-    #     queue.put(time)
-    # times = queue
-
     queue = mp.Queue()
     for angle in angles:
         queue.put(angle)
@@ -87,7 +75,6 @@ if __name__ == '__main__':
         process = mp.Process(target=start_new_projection, args=(angles, time))
         processes.append(process)
         process.start()
-        # sleep(10)
 
     for process in processes:
         process.join()
