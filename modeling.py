@@ -17,9 +17,9 @@ class Modeling:
         self.space = space
         self.source = source
         self.solid_angle = ((0, -1, 0), 10*pi/180)
-        self.start_time = 0.
         self.time_step = 1.
         self.file_name = f'{self}'
+        self.mp = False
         self.subject = None
         self.distibution_voxel_size = 0.4
         self.args = [
@@ -35,10 +35,17 @@ class Modeling:
             if arg in kwds:
                 setattr(self, arg, kwds[arg])
 
-    def start(self, total_time):
+    def startMP(self, time, lock):
+        self.mp = True
+        self.lock = lock
+        while not time.empty():
+            self.start(time.get())
+
+    def start(self, time):
+        start_time, stop_time = time
+        self.source.timer = start_time
         self.save_modeling_parameters()
-        self.source.timer = self.start_time
-        for t in np.arange(self.start_time, total_time, self.time_step):
+        for t in np.arange(start_time, stop_time, self.time_step):
             t = round(t, 5)
             dt = round(t + self.time_step, 5)
             flow_name = f'{(t, dt)}'
@@ -60,9 +67,13 @@ class Modeling:
         return False
 
     def save_data(self, flow):
+        if self.mp:
+            self.lock.acquire()
         self.save_flow_data(flow)
         if self.subject is not None:
             self.save_dose_distribution(flow)
+        if self.mp:
+            self.lock.release ()
 
     def save_flow_data(self, flow):
         data = {
@@ -146,6 +157,8 @@ class Modeling:
         file.close()
 
     def save_modeling_parameters(self):
+        if self.mp:
+            self.lock.acquire()
         file = File(f'Output data/{self.file_name}', 'a')
         try:
             group = file.create_group('Modeling parameters')
@@ -153,9 +166,9 @@ class Modeling:
             print('Параметры уже записаны')
         else:
             solidAngle = group.create_group('Solid angle')
-            solidAngle.create_dataset('Vector', data=self.solid_angle[0])
-            solidAngle.create_dataset('Angle', data=self.solid_angle[1])
-
+            if self.solid_angle is not None:
+                solidAngle.create_dataset('Vector', data=self.solid_angle[0])
+                solidAngle.create_dataset('Angle', data=self.solid_angle[1])
             spaceParameters = group.create_group('Space')
             spaceParameters.create_dataset('size', data=self.space.size)
             spaceParameters.create_dataset('material', data=materials_reverse_list[self.space.material])
@@ -175,6 +188,8 @@ class Modeling:
             group.create_dataset('Processes', data=Photons.processes)
         finally:
             file.close()
+        if self.mp:
+            self.lock.release ()
 
 
 class ParticleFlow:
