@@ -70,7 +70,7 @@ if __name__ == '__main__':
         process = mp.Process(target=createProcess, args=(time, lock))
         processes.append(process)
         process.start()
-        sleep(5)
+        sleep(10)
     for process in processes:
         process.join()
     print('End!')
