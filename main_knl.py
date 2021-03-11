@@ -59,10 +59,10 @@ def createProcess(time, lock):
     modeling.startMP(time, lock)
 
 if __name__ == '__main__':
-    processesNumber = 288
+    processesNumber = 287
     time = mp.Queue()
     lock = mp.Lock()
-    startTime = np.round(np.arange(0., 288.*2/100, 0.01), 2)
+    startTime = np.round(np.arange(0., 287.*2/100, 0.01), 2)
     for st in startTime:
         time.put((st, round(st + 0.01, 2)))
     processes = []
