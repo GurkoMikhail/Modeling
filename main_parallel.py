@@ -58,7 +58,7 @@ def start_new_projection(angles, time):
         phantom.rotate((angle, 0, 0))
         source.rotate((angle, 0, 0))
         modeling.file_name = f'efg3_fix {round(angle*180/np.pi, 1)} deg.hdf'
-        modeling.start(time)
+        modeling.start((0., time))
 
 if __name__ == '__main__':
     time = 15.
