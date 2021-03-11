@@ -63,7 +63,7 @@ def start_new_projection(angles, time):
         modeling.start(time)
 
 if __name__ == '__main__':
-    time = 10.
+    time = 15.
     angles = np.linspace(np.pi/4, -3*np.pi/4, 32)
     processes_number = 32
 
