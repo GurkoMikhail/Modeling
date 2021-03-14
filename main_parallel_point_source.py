@@ -55,7 +55,7 @@ def start_new_projection(distances, time):
 if __name__ == '__main__':
     time = 10.
     distances = np.linspace(2.5, 80., 32)
-    processes_number = 2
+    processes_number = 32
 
     queue = mp.Queue()
     for distance in distances:
