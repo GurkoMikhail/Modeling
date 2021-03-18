@@ -76,7 +76,7 @@ def start_new_projection(angles, time):
 if __name__ == '__main__':
     time = 15.
     angles = np.linspace(np.pi/4, -3*np.pi/4, 32)
-    angles = np.linspace(0., -3*np.pi/4, 32)
+    # angles = np.linspace(0., -3*np.pi/4, 32)
     processes_number = 32
 
     queue = mp.Queue()
