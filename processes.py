@@ -1,15 +1,15 @@
 import g4compton
 import numpy as np
 from numpy import pi
-import materials
 
 
 class Interaction:
     """ Класс взаимодействия """
 
-    def __init__(self, particles, space):
+    def __init__(self, particles, space, materials):
         self.particles = particles
         self.space = space
+        self.materials = materials
         self.processes = []
         for process in self.particles.processes:
             self.processes.append(processes[process](particles))
@@ -22,11 +22,11 @@ class Interaction:
         coordinates = self.particles.coordinates[indices]
         energy = self.particles.energy[indices]
         material = self.space.get_material(coordinates)
-        lac = materials.get_lac(material, energy, self.processes)
+        lac = self.materials.get_lac(material, energy, self.processes)
         return lac
 
     def get_free_path(self):
-        self.max_lac = materials.get_max_lac(self.space_materials_list, self.particles.energy, self.processes)
+        self.max_lac = self.materials.get_max_lac(self.space_materials_list, self.particles.energy, self.processes)
         free_path = self.rng_free_path.exponential(1/self.max_lac, self.particles.count)
         return free_path
 

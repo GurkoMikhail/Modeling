@@ -1,10 +1,10 @@
+from operator import index
 from h5py import File
 import numpy as np
 from numpy import pi, sqrt, cos, sin, log
 import utilites
 from particles import Photons
 from processes import Interaction
-from materials import materials_reverse_list
 from time import time
 
 
@@ -13,9 +13,10 @@ class Modeling:
     Основной класс моделирования
     """
 
-    def __init__(self, space, source, **kwds):
+    def __init__(self, space, source, materials, **kwds):
         self.space = space
         self.source = source
+        self.materials = materials
         self.solid_angle = ((0, -1, 0), 10*pi/180)
         self.time_step = 1.
         self.file_name = f'{self}'
@@ -52,7 +53,7 @@ class Modeling:
             if self.check_flow_in_file(flow_name):
                 self.source.timer = dt
             else:
-                flow = self.source.generate_particles_flow(self.space, self.time_step, self.solid_angle)
+                flow = self.source.generate_particles_flow(self.space, self.materials, self.time_step, self.solid_angle)
                 flow.run()
                 self.save_data(flow)
 
@@ -169,9 +170,12 @@ class Modeling:
             if self.solid_angle is not None:
                 solidAngle.create_dataset('Vector', data=self.solid_angle[0])
                 solidAngle.create_dataset('Angle', data=self.solid_angle[1])
+            materialsGroup = group.create_group('Dict of materials indices')
+            for name, index in self.materials.indices_dict.items():
+                materialsGroup.create_dataset(name, data=index)
             spaceParameters = group.create_group('Space')
             spaceParameters.create_dataset('size', data=self.space.size)
-            spaceParameters.create_dataset('material', data=materials_reverse_list[self.space.material])
+            spaceParameters.create_dataset('material', data=self.materials.name(self.space.material))
             for subject in self.space.subjects:
                 subjectParameters = spaceParameters.create_group(subject.__class__.__name__)
                 for parameter_name, value in subject.__dict__.items():
@@ -195,12 +199,12 @@ class Modeling:
 class ParticleFlow:
     """ Класс потока частиц """
 
-    def __init__(self, particles, space, solid_angle, name):
+    def __init__(self, particles, space, materials, solid_angle, name):
         self.particles = particles
         self.space = space
         self.solid_angle = solid_angle
         self.name = name
-        self.interaction = Interaction(particles, space)
+        self.interaction = Interaction(particles, space, materials)
         self.left_the_space = 0
         self.step = 1
         self.min_energy = 0
@@ -347,11 +351,11 @@ class Source:
         particles = Photons(energies, directions, coordinates, emission_time)
         return particles
 
-    def generate_particles_flow(self, space, time_step, solid_angle, name=None):
+    def generate_particles_flow(self, space, materials, time_step, solid_angle, name=None):
         n = int(self.nuclei_number*(1 - 2**(-time_step/self.half_life)))
         particles = self.generate_particles(n)
         if name is None:
             name = f'{(round(self.timer, 5), round(self.timer + time_step, 5))}'
-        particles_flow = ParticleFlow(particles, space, solid_angle, name)
+        particles_flow = ParticleFlow(particles, space, materials, solid_angle, name)
         self.timer += time_step
         return particles_flow
