@@ -324,7 +324,7 @@ class Source:
         coordinates += dcoordinates
         if self.rotated:
             coordinates -= self.rotation_center
-            utilites.rotating_the_coordinates(coordinates, self.R)
+            np.dot(coordinates, np.transpose(self.R), out=coordinates)
             coordinates += self.rotation_center
         coordinates += self.coordinates
         return coordinates

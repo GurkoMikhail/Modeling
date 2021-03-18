@@ -1,6 +1,6 @@
 import numpy as np
-from numpy import uint8, uint64
-from utilites import rotating_the_coordinates, culculate_R_euler
+from numpy import common_type, uint8, uint64
+from utilites import culculate_R_euler
 from collimators import get_centers, get_collimated
 
 
@@ -88,7 +88,7 @@ class Subject:
         coordinates -= self.coordinates
         if self.rotated:
             coordinates -= self.rotation_center
-            rotating_the_coordinates(coordinates, self.R)
+            np.dot(coordinates, np.transpose(self.R), out=coordinates)
             coordinates += self.rotation_center
 
     def inside(self, coordinates):
