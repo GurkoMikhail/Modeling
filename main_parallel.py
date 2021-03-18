@@ -10,7 +10,7 @@ def start_new_projection(angles, time):
 
     phantom = np.load('Phantoms/ae3cut.npy')
     phantom = Phantom(
-        coordinates=(0., 12.4 + 9.4, 0.),
+        coordinates=(0., 12.4, 0.),
         material=phantom,
         voxel_size=0.4
         )
@@ -74,7 +74,7 @@ def start_new_projection(angles, time):
         modeling.start((0., time))
 
 if __name__ == '__main__':
-    time = 15.
+    time = 30.
     angles = np.linspace(np.pi/4, -3*np.pi/4, 32)
     # angles = np.linspace(0., -3*np.pi/4, 32)
     processes_number = 32
