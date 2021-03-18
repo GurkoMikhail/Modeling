@@ -1,15 +1,16 @@
 import numpy as np
 from subjects import Space, Phantom, Collimator, Detector
 from modeling import Source, Modeling
+from materials import Materials
 import multiprocessing as mp
 
 def start_new_projection(angles, time):
-    size = np.asarray((53.3, 70., 38.7))
+    size = np.asarray((51.2, 70., 40.))
     space = Space(size, 0)
 
-    phantom = np.load('Phantoms/ae3_fix.npy')
+    phantom = np.load('Phantoms/ae3cut.npy')
     phantom = Phantom(
-        coordinates=(1.05, (12.4 - 10.) + 10, -3.),
+        coordinates=(0., 12.4 + 9.4, 0.),
         material=phantom,
         voxel_size=0.4
         )
@@ -17,7 +18,7 @@ def start_new_projection(angles, time):
 
     detector = Detector(
         coordinates=(0., 9.5, 0.),
-        size=(53.3, 38.7, 9.5),
+        size=(51.2, 40., 9.5),
         material=4,
         euler_angles=(0, np.pi/2, 0),
         rotation_center=(0., 0., 0.)
@@ -38,16 +39,28 @@ def start_new_projection(angles, time):
     source = Source(
         coordinates=phantom.coordinates,
         activity=300*10**6,
-        distribution=np.load('Phantoms/efg3_fix.npy'),
+        distribution=np.load('Phantoms/efg3cut.npy'),
         voxel_size=0.4,
         radiation_type='Gamma',
         energy=140.5*10**3,
         half_life=6*60*60
         )
 
+    materials = {
+        'Compounds and mixtures/Air, Dry (near sea level)':         0,
+        'Compounds and mixtures/Lung':                              1,
+        'Compounds and mixtures/Tissue, Soft (ICRU-44)':            2,
+        'Compounds and mixtures/B-100 Bone-Equivalent Plastic':     3,
+        'Compounds and mixtures/Sodium Iodide':                     4,
+        'Elemental media/Pb':                                       5,
+    }
+
+    materials = Materials(materials, max_energy=140500)
+
     modeling = Modeling(
         space,
         source,
+        materials,
         solid_angle=((0, -1, 0), 15*np.pi/180),
         time_step=0.01,
         subject=detector
@@ -57,12 +70,13 @@ def start_new_projection(angles, time):
         angle = angles.get()
         phantom.rotate((angle, 0, 0))
         source.rotate((angle, 0, 0))
-        modeling.file_name = f'efg3_fix {round(angle*180/np.pi, 1)} deg.hdf'
+        modeling.file_name = f'efg3cut {round(angle*180/np.pi, 1)} deg.hdf'
         modeling.start((0., time))
 
 if __name__ == '__main__':
     time = 15.
     angles = np.linspace(np.pi/4, -3*np.pi/4, 32)
+    angles = np.linspace(0., -3*np.pi/4, 32)
     processes_number = 32
 
     queue = mp.Queue()
