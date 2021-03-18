@@ -1,6 +1,7 @@
 import numpy as np
 from subjects import Space, Phantom, Collimator, Detector
 from modeling import Source, Modeling
+from materials import Materials
 import cProfile
 
 
@@ -47,43 +48,27 @@ if __name__ == '__main__':
         )
 
 
-    # source = np.ones((128, 128, 128))
-    # activity = 10**9
+    materials = {
+        'Compounds and mixtures/Air, Dry (near sea level)':         0,
+        'Compounds and mixtures/Lung':                              1,
+        'Compounds and mixtures/Tissue, Soft (ICRU-44)':            2,
+        'Compounds and mixtures/B-100 Bone-Equivalent Plastic':     3,
+        'Compounds and mixtures/Sodium Iodide':                     4,
+        'Elemental media/Pb':                                       5,
+    }
 
-    # point_source = Source(
-    #     coordinates=(size[0]/2, size[1]/2, size[2]/2),
-    #     activity=70*10**6,
-    #     distribution=np.ones((1, 1, 1)),
-    #     voxel_size=0.1,
-    #     radiation_type='Gamma',
-    #     energy=140.5*10**3,
-    #     half_life=6*60*60
-        # )
-
-    # modeling = Modeling(
-    #     space,
-    #     source,
-    #     solid_angle=((0, -1, 0), 10*np.pi/180),
-    #     time_step=0.01,
-    #     file_name = 'efg3_fix front projection 5 sm.hdf'
-    # )
-
-    # for i in range(1, 6):
-    #     source.timer = 1.
-    #     modeling.solid_angle=((0, -1, 0), i*2*np.pi/180)
-    #     modeling.file_name = f'efg3_fix front projection {i*2} deg.hdf'
-    #     modeling.start(5)
+    materials = Materials(materials, max_energy=140500)
 
     modeling = Modeling(
         space,
         source,
+        materials,
         solid_angle=((0, -1, 0), 10*np.pi/180),
         time_step=0.01,
-        file_name='efg3_fix 1.5 deg.hdf'
+        file_name='efg3_fix 0.0 deg.hdf'
         )
-    # modeling.source.timer = 9.
 
-    modeling.start(10.05)
+    # modeling.start((0, 10.05))
 
-    # cProfile.run("modeling.start(0.1)", 'efg3_fix 0.0 deg projection test stats.txt')
+    cProfile.run("modeling.start((0., 0.01))", 'efg3_fix 0.0 deg stats.txt')
 
