@@ -1,7 +1,6 @@
 import numpy as np
-from numpy import common_type, uint8, uint64
+from numpy import common_type, sqrt, uint8, uint64
 from utilites import culculate_R_euler
-from collimators import get_centers, get_collimated
 
 
 class Space:
@@ -148,11 +147,30 @@ class Collimator(Subject):
         super().__init__(coordinates, size, material, euler_angles, rotation_center)
         self.hole_diameter = hole_diameter
         self.septa = septa
-        self.holes_centers = get_centers(self.size, self.hole_diameter, self.septa)
+        y_period = sqrt(3)/2*self.hole_diameter + self.septa
+        x_period = sqrt((2*y_period)**2 - y_period**2)
+        self.period = np.stack((x_period, y_period))
+
+    def get_collimated(self, coordinates):
+        collimated = np.zeros(coordinates.shape[0], dtype=uint8)
+        corners = np.stack((self.period, self.period/2))
+        coordinates = np.mod(coordinates[:, :2], self.period)
+        coordinates -= corners[1]
+        corners -= corners[1]
+        np.absolute(coordinates, out=coordinates)
+        a = sqrt(3)/4
+        for corner in corners:
+            dcoordinates = coordinates - corner
+            dcoordinates /= self.hole_diameter
+            np.absolute(dcoordinates, out=dcoordinates)
+            dx = dcoordinates[:, 0]
+            dy = dcoordinates[:, 1]
+            collimated += (dy <= a)*(a*dx + dy/4 <= a/2)
+        return np.nonzero(collimated)[0]
 
     def get_material_indices(self, coordinates):
         material = super().get_material_indices(coordinates)
-        collimated = get_collimated(coordinates, self.holes_centers, self.hole_diameter)
+        collimated = self.get_collimated(coordinates)
         material[collimated] = 0
         return material
 
