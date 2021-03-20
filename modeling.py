@@ -39,8 +39,7 @@ class Modeling:
     def startMP(self, time, lock):
         self.mp = True
         self.lock = lock
-        while not time.empty():
-            self.start(time.get())
+        self.start(time)
 
     def start(self, time):
         start_time, stop_time = time
