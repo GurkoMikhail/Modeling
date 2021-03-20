@@ -65,7 +65,8 @@ if __name__ == '__main__':
         materials,
         solid_angle=((0, -1, 0), 10*np.pi/180),
         time_step=0.01,
-        file_name='efg3_fix 0.0 deg.hdf'
+        file_name='efg3_fix 0.0 deg.hdf',
+        subject=detector
         )
 
     # modeling.start((0, 10.05))
