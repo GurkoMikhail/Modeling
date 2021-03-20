@@ -31,7 +31,7 @@ def createProcess(parameters):
         voxel_size=0.4
         )
 
-    size = np.asarray((detector.size[0], phantom.coordinates[1] + phantom.size[1], detector.size[2]))
+    size = np.asarray((detector.size[0], phantom.coordinates[1] + phantom.size[1], detector.size[1]))
     space = Space(size, 0)
     space.add_subject(detector)
     space.add_subject(collimator)
@@ -65,7 +65,7 @@ def createProcess(parameters):
         solid_angle=((0, -1, 0), 15*np.pi/180),
         time_step=0.01,
         subject=detector,
-        file_name=parameters['Name']
+        file_name=parameters['Name'] + '.hdf'
         )
     
     modeling.startMP(parameters['Time'], parameters['Lock'])
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     totalTime = 15.
     parameters = mp.Queue()
     locks = [mp.Lock() for i in range(4)]
-    startTime = np.round(np.linspace(0, totalTime, cores_number), 2)
+    startTime = np.round(np.linspace(0, totalTime, cores_number + 1), 2)[:-1]
     finishTime = np.round((startTime + (startTime[1] - startTime[0])), 2)
     times = np.stack((startTime, finishTime), axis=1)
     processes = []
