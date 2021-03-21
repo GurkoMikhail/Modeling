@@ -42,7 +42,6 @@ class Interaction:
         return np.max(total_lac, axis=0)
 
     def get_free_path(self):
-        # self.max_lac = self.materials.get_max_lac(self.space.materials_list, self.particles.energy, self.processes)
         self.max_lac = self.get_max_lac()
         free_path = self.rng_free_path.exponential(1/self.max_lac, self.particles.count)
         return free_path
