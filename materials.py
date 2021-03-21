@@ -37,7 +37,7 @@ class Materials:
             lac = {}
             materialGroup = lacsGroup[material]
             energy = materialGroup['Energy']
-            max_energy_index = np.searchsorted(energy, self.max_energy/10**6, side='right')
+            max_energy_index = np.searchsorted(energy, self.max_energy/10**6, side='right') + 1
             for attribute, array in materialGroup.items():
                 lac.update({attribute: array[:max_energy_index]})
             lac['Energy'] = lac['Energy']*10**6
