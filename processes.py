@@ -13,20 +13,37 @@ class Interaction:
         self.processes = []
         for process in self.particles.processes:
             self.processes.append(processes[process](particles))
+        lac_funtions = self.materials.construct_lac_funtions(self.processes)
+        self.lacs = lac_funtions['Total']
+        for process in self.processes:
+            process.lacs = lac_funtions[process.name]
         self.data = []
-        self.space_materials_list = self.space.materials_list
         self.rng_choose = np.random.default_rng()
         self.rng_free_path = np.random.default_rng()
 
     def get_lac(self, indices):
         coordinates = self.particles.coordinates[indices]
         energy = self.particles.energy[indices]
-        material = self.space.get_material(coordinates)
-        lac = self.materials.get_lac(material, energy, self.processes)
-        return lac
+        materials = self.space.get_material(coordinates)
+        lac_out = np.zeros((len(processes), energy.size))
+        for material in np.unique(materials):
+            indices = np.nonzero(materials == material)[0]
+            for i, process in enumerate(self.processes):
+                lac_out[i, indices] = process.lacs[material](energy[indices])
+        return lac_out
+
+    def get_max_lac(self):
+        energy = self.particles.energy
+        materials = self.materials.indices_dict.values()
+        total_lac = []
+        for material in materials:
+            total_lac.append(self.lacs[material](energy))
+        total_lac = np.stack(total_lac)
+        return np.max(total_lac, axis=0)
 
     def get_free_path(self):
-        self.max_lac = self.materials.get_max_lac(self.space_materials_list, self.particles.energy, self.processes)
+        # self.max_lac = self.materials.get_max_lac(self.space.materials_list, self.particles.energy, self.processes)
+        self.max_lac = self.get_max_lac()
         free_path = self.rng_free_path.exponential(1/self.max_lac, self.particles.count)
         return free_path
 
@@ -59,8 +76,11 @@ class Process:
 
     def __init__(self, particles):
         """ Конструктор процесса """
-        
         self.particles = particles
+
+    @property
+    def name(self):
+        return self.__class__.__name__
 
     def apply(self, interacted):
         """ Применить процесс """
