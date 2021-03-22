@@ -117,15 +117,6 @@ class Modeling:
                 group.create_dataset(str(key), data=data[key])
 
     def save_dose_distribution(self, flow):
-        file = File(f'Output data/{self.file_name}', 'a')
-        try:
-            group = file.create_group('Dose distribution')
-        except Exception:
-            group = file['Dose distribution']
-            volume = group['Volume']
-        else:
-            volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distibution_voxel_size).astype(np.uint), dtype=np.float64))
-            group.create_dataset('Voxel size', data=self.distibution_voxel_size)
         coordinates = []
         energy_transfer = []
         for dat in flow.interaction.data:
@@ -139,6 +130,15 @@ class Modeling:
             range=((0, self.space.size[0]), (0, self.space.size[1]), (0, self.space.size[2])),
             weights=energy_transfer
         )[0]
+        file = File(f'Output data/{self.file_name}', 'a')
+        try:
+            group = file.create_group('Dose distribution')
+        except Exception:
+            group = file['Dose distribution']
+            volume = group['Volume']
+        else:
+            volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distibution_voxel_size).astype(np.uint), dtype=np.float64))
+            group.create_dataset('Voxel size', data=self.distibution_voxel_size)
         volume[:] += flow_volume
         file.close()
 
