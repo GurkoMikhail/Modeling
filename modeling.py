@@ -179,7 +179,6 @@ class Modeling:
                 subjectParameters = spaceParameters.create_group(subject.__class__.__name__)
                 for parameter_name, value in subject.__dict__.items():
                     subjectParameters.create_dataset(parameter_name, data=value)
-            
             sourceParameters = group.create_group('Source')
             for parameter_name, value in self.source.__dict__.items():
                 if parameter_name not in ('particles_emitted', 'timer', 'coordinates_table', 'size', 'rng_dist', 'rng_time', 'rng_dir', 'rng_ddist'):
