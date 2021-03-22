@@ -71,7 +71,7 @@ def createProcess(parameters):
     modeling.startMP(parameters['Time'], parameters['Lock'])
 
 if __name__ == '__main__':
-    cores_number = 2
+    cores_number = 72
     totalTime = 15.
     parameters = mp.Queue()
     locks = [mp.Lock() for i in range(4)]
