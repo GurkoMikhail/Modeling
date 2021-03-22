@@ -22,6 +22,8 @@ class Modeling:
         self.file_name = f'{self}'
         self.mp = False
         self.subject = None
+        self.save_flows = True
+        self.save_dose_data = True
         self.distibution_voxel_size = 0.4
         self.args = [
             'solid_angle',
@@ -29,6 +31,8 @@ class Modeling:
             'time_step',
             'file_name',
             'subject',
+            'save_flows',
+            'save_dose_data',
             'distibution_voxel_size'
             ]
 
@@ -69,8 +73,9 @@ class Modeling:
     def save_data(self, flow):
         if self.mp:
             self.lock.acquire()
-        self.save_flow_data(flow)
-        if self.subject is not None:
+        if self.save_flows:
+            self.save_flow_data(flow)
+        if self.save_dose_data:
             self.save_dose_distribution(flow)
         if self.mp:
             self.lock.release ()
@@ -183,10 +188,9 @@ class Modeling:
             for parameter_name, value in self.source.__dict__.items():
                 if parameter_name not in ('particles_emitted', 'timer', 'coordinates_table', 'size', 'rng_dist', 'rng_time', 'rng_dir', 'rng_ddist'):
                     sourceParameters.create_dataset(parameter_name, data=value)
-
-            if subject is not None:
+            if self.subject is not None:
                 subject = self.subject.__class__.__name__
-            group.create_dataset('Subject', data=subject)
+                group.create_dataset('Subject', data=subject)
             group.create_dataset('Processes', data=Photons.processes)
         finally:
             file.close()
