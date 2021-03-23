@@ -78,7 +78,7 @@ class Modeling:
         if self.save_dose_data:
             self.save_dose_distribution(flow)
         if self.mp:
-            self.lock.release ()
+            self.lock.release()
 
     def save_flow_data(self, flow):
         data = {
@@ -195,7 +195,7 @@ class Modeling:
         finally:
             file.close()
         if self.mp:
-            self.lock.release ()
+            self.lock.release()
 
 
 class ParticleFlow:
