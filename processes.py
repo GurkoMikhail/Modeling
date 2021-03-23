@@ -117,6 +117,20 @@ class CoherentScattering(Process):
         super().__init__(particles, **kwds)
         self.rng_phi = np.random.default_rng()
 
+    def get_phi(self, interacted):
+        """ Получить угол рассеяния - phi """
+        phi = pi*(self.rng_phi.random(interacted.size)*2 - 1)
+        return phi
+
+    def apply(self, interacted):
+        """ Применить эффект Комптона """
+        theta = self.get_theta(interacted)
+        phi = self.get_phi(interacted)
+        self.particles.rotate(theta, phi, interacted)
+        data = super().apply(interacted)
+        data.update({'Energy transfer': np.zeros_like(phi)})
+        return data
+
 
 class ComptonScattering(Process):
     """ Класс эффекта Комптона """
@@ -126,12 +140,12 @@ class ComptonScattering(Process):
         self.rng_phi = np.random.default_rng()
 
     def get_theta(self, interacted):
-        """ Получить угл рассеяния - theta """
+        """ Получить угол рассеяния - theta """
         theta = g4compton.generation_theta(self.particles.energy[interacted])
         return theta
 
     def get_phi(self, interacted):
-        """ Получить угл рассеяния - phi """
+        """ Получить угол рассеяния - phi """
         phi = pi*(self.rng_phi.random(interacted.size)*2 - 1)
         return phi
 
@@ -161,6 +175,7 @@ class PairProduction(Process):
 processes = {
     'PhotoelectricEffect': PhotoelectricEffect,
     'ComptonScattering': ComptonScattering,
+    'CoherentScattering': CoherentScattering,
     'PairProduction': PairProduction
 }
 
