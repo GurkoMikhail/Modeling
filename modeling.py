@@ -1,11 +1,10 @@
-from operator import index
 from h5py import File
 import numpy as np
 from numpy import pi, sqrt, cos, sin, log
 import utilites
 from particles import Photons
 from processes import Interaction
-from time import time
+from time import time, sleep
 
 
 class Modeling:
@@ -61,14 +60,20 @@ class Modeling:
                 self.save_data(flow)
 
     def check_flow_in_file(self, flow_name):
-        file = File(f'Output data/{self.file_name}', 'a')
-        if 'Flows' in file:
-            flows = file['Flows']
-            inside = flow_name in flows
+        try:
+            file = File(f'Output data/{self.file_name}', 'r')
+        except Exception:
+            print(f'Не удалось проверить на наличие {flow_name}')
+            inside = True
+        else:
+            if 'Flows' in file:
+                flows = file['Flows']
+                inside = flow_name in flows
+            else:
+                inside = False
             file.close
+        finally:
             return inside
-        file.close
-        return False
 
     def save_data(self, flow):
         if self.mp:
@@ -109,17 +114,20 @@ class Modeling:
         data['Energy transfer'] = np.concatenate(data['Energy transfer'])
         data['Emission time'] = np.concatenate(data['Emission time'])
         data['Emission coordinates'] = np.concatenate(data['Emission coordinates'])
-        
-        file = File(f'Output data/{self.file_name}', 'a')
         try:
-            group = file.create_group(f'Flows/{flow.name}')
+            file = File(f'Output data/{self.file_name}', 'r+')
         except Exception:
-            group = file[f'Flows/{flow.name}']
-            for key in group.keys():
-                group[key] = data[key]
+            print(f'Не удалось сохранить {flow}')
         else:
-            for key in data.keys():
-                group.create_dataset(str(key), data=data[key])
+            try:
+                group = file.create_group(f'Flows/{flow.name}')
+            except Exception:
+                group = file[f'Flows/{flow.name}']
+                for key in group.keys():
+                    group[key] = data[key]
+            else:
+                for key in data.keys():
+                    group.create_dataset(str(key), data=data[key])
 
     def save_dose_distribution(self, flow):
         coordinates = []
@@ -135,37 +143,25 @@ class Modeling:
             range=((0, self.space.size[0]), (0, self.space.size[1]), (0, self.space.size[2])),
             weights=energy_transfer
         )[0]
-        file = File(f'Output data/{self.file_name}', 'a')
         try:
-            group = file.create_group('Dose distribution')
+            file = File(f'Output data/{self.file_name}', 'r+')
         except Exception:
-            group = file['Dose distribution']
-            volume = group['Volume']
+            print(f'Не удалось сохранить dose {flow}')
         else:
-            volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distibution_voxel_size).astype(np.uint), dtype=np.float64))
-            group.create_dataset('Voxel size', data=self.distibution_voxel_size)
-        volume[:] += flow_volume
-        file.close()
-
-    def save_source_distribution(self, flow):
-        file = File(f'Output data/{self.file_name}', 'a')
-        try:
-            group = file.create_group('Source distribution')
-        except Exception:
-            group = file['Source distribution']
-            volume = group['Volume']
-        else:
-            volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distibution_voxel_size).astype(np.uint)))
-            group.create_dataset('Voxel size', data=self.distibution_voxel_size)
-        flow_volume = 0
-        volume += flow_volume
-        file.close()
+            try:
+                group = file.create_group('Dose distribution')
+            except Exception:
+                group = file['Dose distribution']
+                volume = group['Volume']
+            else:
+                volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distibution_voxel_size).astype(np.uint), dtype=np.float64))
+                group.create_dataset('Voxel size', data=self.distibution_voxel_size)
+            volume[:] += flow_volume
+            file.close()
 
     def save_modeling_parameters(self):
-        if self.mp:
-            self.lock.acquire()
-        file = File(f'Output data/{self.file_name}', 'a')
         try:
+            file = File(f'Output data/{self.file_name}', 'x')
             group = file.create_group('Modeling parameters')
         except Exception:
             print('Параметры уже записаны')
@@ -192,10 +188,7 @@ class Modeling:
                 subject = self.subject.__class__.__name__
                 group.create_dataset('Subject', data=subject)
             group.create_dataset('Processes', data=Photons.processes)
-        finally:
             file.close()
-        if self.mp:
-            self.lock.release()
 
 
 class ParticleFlow:
