@@ -31,6 +31,7 @@ def start_new_projection(angles, time):
         material=5,
         hole_diameter=0.111,
         septa=0.016,
+        space_material=space.material,
         euler_angles=detector.euler_angles,
         rotation_center=detector.rotation_center
         )

@@ -143,10 +143,11 @@ class Collimator(Subject):
     [material] = uint
     """
 
-    def __init__(self, coordinates, size, material, hole_diameter, septa, euler_angles=None, rotation_center=None):
+    def __init__(self, coordinates, size, material, hole_diameter, septa, space_material, euler_angles=None, rotation_center=None):
         super().__init__(coordinates, size, material, euler_angles, rotation_center)
         self.hole_diameter = hole_diameter
         self.septa = septa
+        self.space_material = space_material
         y_period = sqrt(3)/2*self.hole_diameter + self.septa
         x_period = sqrt((2*y_period)**2 - y_period**2)
         self.period = np.stack((x_period, y_period))
@@ -171,7 +172,7 @@ class Collimator(Subject):
     def get_material_indices(self, coordinates):
         material = super().get_material_indices(coordinates)
         collimated = self.get_collimated(coordinates)
-        material[collimated] = 0
+        material[collimated] = self.space_material
         return material
 
 
