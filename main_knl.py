@@ -28,7 +28,7 @@ class ModelingProcess(Process):
                 material=5,
                 hole_diameter=parameters['Hole diameter'],
                 septa=parameters['Septa'],
-                space_material=space.material,
+                space_material=0,
                 euler_angles=detector.euler_angles,
                 rotation_center=detector.rotation_center
                 )
