@@ -119,7 +119,7 @@ class Modeling:
         except Exception:
             print(f'Не удалось сохранить {flow.name}')
         else:
-            if not f'Flows/{flow.name}' in file['Flows']:
+            if not f'Flows/{flow.name}' in file:
                 group = file.create_group(f'Flows/{flow.name}')
                 for key in data.keys():
                     group.create_dataset(str(key), data=data[key])
