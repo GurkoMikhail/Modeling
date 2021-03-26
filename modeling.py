@@ -117,17 +117,17 @@ class Modeling:
         try:
             file = File(f'Output data/{self.file_name}', 'r+')
         except Exception:
-            print(f'Не удалось сохранить {flow}')
+            print(f'Не удалось сохранить {flow.name}')
         else:
-            try:
+            if not f'Flows/{flow.name}' in file['Flows']:
                 group = file.create_group(f'Flows/{flow.name}')
-            except Exception:
+                for key in data.keys():
+                    group.create_dataset(str(key), data=data[key])
+            else:
+                print(f'{flow.name} уже существует. Перезаписано')
                 group = file[f'Flows/{flow.name}']
                 for key in group.keys():
                     group[key] = data[key]
-            else:
-                for key in data.keys():
-                    group.create_dataset(str(key), data=data[key])
 
     def save_dose_distribution(self, flow):
         coordinates = []
@@ -146,16 +146,15 @@ class Modeling:
         try:
             file = File(f'Output data/{self.file_name}', 'r+')
         except Exception:
-            print(f'Не удалось сохранить dose {flow}')
+            print(f'Не удалось сохранить dose {flow.name}')
         else:
-            try:
+            if not 'Dose distribution' in file:
                 group = file.create_group('Dose distribution')
-            except Exception:
-                group = file['Dose distribution']
-                volume = group['Volume']
-            else:
                 volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distibution_voxel_size).astype(np.uint), dtype=np.float64))
                 group.create_dataset('Voxel size', data=self.distibution_voxel_size)
+            else:
+                group = file['Dose distribution']
+                volume = group['Volume']
             volume[:] += flow_volume
             file.close()
 
@@ -164,7 +163,7 @@ class Modeling:
             file = File(f'Output data/{self.file_name}', 'x')
             group = file.create_group('Modeling parameters')
         except Exception:
-            print('Параметры уже записаны')
+            print(f'Не удалось записать параметры {self.file_name}')
         else:
             solidAngle = group.create_group('Solid angle')
             if self.solid_angle is not None:
