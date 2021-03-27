@@ -74,7 +74,7 @@ class ModelingProcess(Process):
             modeling.startMP(parameters['Time'], self.lock)
 
 def generateParameters():
-    cores_number = 288
+    cores_number = 72
     totalTime = 10.
     distances = [5., 10., 15., 20., 40., 60.]
     collimatorThickness = [2.405, 2.405, 3.58, 4.064]
@@ -100,7 +100,7 @@ def generateParameters():
     return parameters_stack
 
 if __name__ == '__main__':
-    process_number = 288
+    process_number = 72
     parameters_stack = generateParameters()
     queue_stack = [Queue() for _ in range(process_number)]
     lock = Lock()
