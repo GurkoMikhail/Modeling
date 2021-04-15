@@ -1,3 +1,4 @@
+import cProfile
 import numpy as np
 from subjects import Space, Phantom, Collimator, Detector
 from modeling import Source, Modeling
@@ -72,10 +73,11 @@ def start_new_projection(angles, time):
         phantom.rotate((angle, 0, 0))
         source.rotate((angle, 0, 0))
         modeling.file_name = f'efg3cut {round(angle*180/np.pi, 1)} deg.hdf'
-        modeling.start((0., time))
+        cProfile.runctx('modeling.start((0., time))', globals(), locals(), f'Stats/{round(angle*180/np.pi, 1)} deg projection stats.txt')
+        # modeling.start((0., time))
 
 if __name__ == '__main__':
-    time = 30.
+    time = 0.1
     angles = np.linspace(np.pi/4, -3*np.pi/4, 32)
     # angles = np.linspace(0., -3*np.pi/4, 32)
     processes_number = 32
