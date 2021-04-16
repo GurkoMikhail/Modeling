@@ -1,4 +1,7 @@
 import cProfile
+import os
+os.environ['NUMPY_EXPERIMENTAL_ARRAY_FUNCTION'] = '0'
+
 import numpy as np
 from subjects import Space, Phantom, Collimator, Detector
 from modeling import Source, Modeling
@@ -77,7 +80,7 @@ def start_new_projection(angles, time):
         # modeling.start((0., time))
 
 if __name__ == '__main__':
-    time = 0.1
+    time = 0.02
     angles = np.linspace(np.pi/4, -3*np.pi/4, 32)
     # angles = np.linspace(0., -3*np.pi/4, 32)
     processes_number = 32
