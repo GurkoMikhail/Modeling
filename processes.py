@@ -1,4 +1,5 @@
 import g4compton
+import g4coherent
 import numpy as np
 from numpy import pi
 
@@ -12,7 +13,7 @@ class Interaction:
         self.materials = materials
         self.processes = []
         for process in self.particles.processes:
-            self.processes.append(processes[process](particles))
+            self.processes.append(processes[process](particles, self.materials))
         lac_funtions = self.materials.construct_lac_funtions(self.processes)
         self.lacs = lac_funtions['Total']
         for process in self.processes:
@@ -25,12 +26,12 @@ class Interaction:
         coordinates = self.particles.coordinates[indices]
         energy = self.particles.energy[indices]
         materials = self.space.get_material(coordinates)
-        lac_out = np.zeros((len(processes), energy.size))
+        lac_out = np.zeros((len(self.processes), energy.size))
         for material in np.unique(materials):
             indices = np.nonzero(materials == material)[0]
             for i, process in enumerate(self.processes):
                 lac_out[i, indices] = process.lacs[material](energy[indices])
-        return lac_out
+        return lac_out, materials
 
     def get_max_lac(self):
         energy = self.particles.energy
@@ -46,7 +47,7 @@ class Interaction:
         free_path = self.rng_free_path.exponential(1/self.max_lac, self.particles.count)
         return free_path
 
-    def choose(self, selectable, probability):
+    def choose_interaction(self, probability):
         indices = []
         rnd = self.rng_choose.random(probability[0].size)
         p0 = 0
@@ -55,27 +56,28 @@ class Interaction:
             in_delta = (p0 <= rnd)
             in_delta *= (rnd <= p1)
             ind = np.nonzero(in_delta)[0]
-            indices.append(selectable[ind])
+            indices.append(ind)
             p0 = p1
         return indices
         
     def apply(self, indices):
         if indices.size:
-            lac = self.get_lac(indices)
+            lac, materials = self.get_lac(indices)
             max_lac = self.max_lac[indices]
             interaction_probability = lac/max_lac
-            interacted = self.choose(indices, interaction_probability)
+            interacted = self.choose_interaction(interaction_probability)
             for i, process in enumerate(self.processes):
-                indices = interacted[i]
-                self.data.append(process.apply(indices))
+                ind = interacted[i]
+                self.data.append(process.apply(indices[ind], materials[ind]))
         
 
 class Process:
     """ Класс процесса """
 
-    def __init__(self, particles):
+    def __init__(self, particles, materials):
         """ Конструктор процесса """
         self.particles = particles
+        self.materials = materials
 
     @property
     def name(self):
@@ -101,7 +103,7 @@ class Process:
 class PhotoelectricEffect(Process):
     """ Класс фотоэффекта """
 
-    def apply(self, interacted):
+    def apply(self, interacted, materials):
         """ Применить фотоэффект """
         energy_change = self.particles.energy[interacted]
         self.particles.change_energy(energy_change, interacted)
@@ -113,35 +115,14 @@ class PhotoelectricEffect(Process):
 class CoherentScattering(Process):
     """ Класс когерентного рассеяния """
     
-    def __init__(self, particles, **kwds):
-        super().__init__(particles, **kwds)
+    def __init__(self, particles, materials):
+        super().__init__(particles, materials)
         self.rng_phi = np.random.default_rng()
 
-    def get_phi(self, interacted):
-        """ Получить угол рассеяния - phi """
-        phi = pi*(self.rng_phi.random(interacted.size)*2 - 1)
-        return phi
-
-    def apply(self, interacted):
-        """ Применить эффект Комптона """
-        theta = self.get_theta(interacted)
-        phi = self.get_phi(interacted)
-        self.particles.rotate(theta, phi, interacted)
-        data = super().apply(interacted)
-        data.update({'Energy transfer': np.zeros_like(phi)})
-        return data
-
-
-class ComptonScattering(Process):
-    """ Класс эффекта Комптона """
-
-    def __init__(self, particles, **kwds):
-        super().__init__(particles, **kwds)
-        self.rng_phi = np.random.default_rng()
-
-    def get_theta(self, interacted):
-        """ Получить угол рассеяния - theta """
-        theta = g4compton.generation_theta(self.particles.energy[interacted])
+    def get_theta(self, interacted, materials):
+        energy = self.particles.energy[interacted]
+        Z = self.materials.select_atom(materials)
+        theta = g4coherent.generation_theta(energy, Z)
         return theta
 
     def get_phi(self, interacted):
@@ -149,19 +130,37 @@ class ComptonScattering(Process):
         phi = pi*(self.rng_phi.random(interacted.size)*2 - 1)
         return phi
 
+    def apply(self, interacted, materials):
+        """ Применить эффект Комптона """
+        theta = self.get_theta(interacted, materials)
+        phi = self.get_phi(interacted)
+        self.particles.rotate(theta, phi, interacted)
+        data = super().apply(interacted)
+        data.update({'Energy transfer': np.zeros_like(phi)})
+        return data
+
+
+class ComptonScattering(CoherentScattering):
+    """ Класс эффекта Комптона """
+
+    def get_theta(self, interacted):
+        """ Получить угол рассеяния - theta """
+        theta = g4compton.generation_theta(self.particles.energy[interacted])
+        return theta
+
     def culculate_energy_change(self, theta, interacted):
         """ Вычислить изменения энергий """
         energy_change = g4compton.culculate_energy_change(self.particles.energy[interacted], theta)
         return energy_change
 
-    def apply(self, interacted):
+    def apply(self, interacted, materials):
         """ Применить эффект Комптона """
         theta = self.get_theta(interacted)
         phi = self.get_phi(interacted)
         energy_change = self.culculate_energy_change(theta, interacted)
         self.particles.rotate(theta, phi, interacted)
         self.particles.change_energy(energy_change, interacted)
-        data = super().apply(interacted)
+        data = Process.apply(self, interacted)
         data.update({'Energy transfer': energy_change})
         return data
 

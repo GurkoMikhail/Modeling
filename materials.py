@@ -1,3 +1,4 @@
+from processes import CoherentScattering
 import numpy as np
 from scipy.interpolate import interp1d
 from h5py import File
@@ -9,7 +10,8 @@ class Materials:
     base_name = 'NIST'
     processes_names = {
         'PhotoelectricEffect': 'Photoelectric absorption',
-        'ComptonScattering': 'Incoherent scattering'
+        'ComptonScattering': 'Incoherent scattering',
+        'CoherentScattering': 'Coherent scattering'
     }
 
     def __init__(self, indices_dict, **kwds):
@@ -24,6 +26,13 @@ class Materials:
         self.materials_dict = {}
         for material, index in self.indices_dict.items():
             self.materials_dict.update({index: material})
+
+    def construct_table(self, indices_dict):
+        pass
+
+    def select_atom(self, material):
+        Z = self.table[material]
+        return Z
 
     def name(self, material_index):
         return self.materials_dict[material_index]
