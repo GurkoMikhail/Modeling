@@ -2,7 +2,6 @@ import numpy as np
 from subjects import Space, Phantom, Collimator, Detector
 from modeling import Source, Modeling
 from materials import Materials
-import cProfile
 
 
 if __name__ == '__main__':
@@ -60,6 +59,12 @@ if __name__ == '__main__':
 
     materials = Materials(materials, max_energy=140500)
 
+
+    import particles
+    particles.Photons.processes.append('CoherentScattering')
+    materials.table = np.array([7, 7, 7, 10, 32, 82])
+
+
     modeling = Modeling(
         space,
         source,
@@ -70,7 +75,5 @@ if __name__ == '__main__':
         subject=detector
         )
 
-    # modeling.start((0, 10.05))
-
-    cProfile.run("modeling.start((0., 0.01))", 'efg3_fix 0.0 deg stats.txt')
+    modeling.startMP(0, 15, 32)
 
