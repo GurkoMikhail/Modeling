@@ -4,7 +4,8 @@ from numpy import pi, sqrt, cos, sin, log
 import utilites
 from particles import Photons
 from processes import Interaction
-from time import time, sleep
+from multiprocessing import Process, Lock
+from time import time
 
 
 class Modeling:
@@ -39,13 +40,32 @@ class Modeling:
             if arg in kwds:
                 setattr(self, arg, kwds[arg])
 
-    def startMP(self, time, lock):
+    def startMP(self, start_time, stop_time, n_proc):
         self.mp = True
-        self.lock = lock
-        self.start(time)
+        self.lock = Lock()
+        processes = []
+        self.source.timer = start_time
+        self.save_modeling_parameters()
+        for t in np.arange(start_time, stop_time, self.time_step):
+            t = round(t, 5)
+            dt = round(t + self.time_step, 5)
+            flow_name = f'{(t, dt)}'
+            if self.check_flow_in_file(flow_name):
+                self.source.timer = dt
+            else:
+                processes.append(Process(target=self.run_flow))
+                if len(processes) <= n_proc:
+                    processes[-1].start()
+                else:
+                    processes[0].join()
+                    del processes[0]
+                    processes[-1].start()
+                self.source.timer = dt
+        for process in processes:
+            process.join()
+        print('End!')
 
-    def start(self, time):
-        start_time, stop_time = time
+    def start(self, start_time, stop_time):
         self.source.timer = start_time
         self.save_modeling_parameters()
         for t in np.arange(start_time, stop_time, self.time_step):
@@ -58,6 +78,11 @@ class Modeling:
                 flow = self.source.generate_particles_flow(self.space, self.materials, self.time_step, self.solid_angle)
                 flow.run()
                 self.save_data(flow)
+
+    def run_flow(self):
+        flow = self.source.generate_particles_flow(self.space, self.materials, self.time_step, self.solid_angle)
+        flow.run()
+        self.save_data(flow)
 
     def check_flow_in_file(self, flow_name):
         try:
