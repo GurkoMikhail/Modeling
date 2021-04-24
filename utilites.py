@@ -42,7 +42,7 @@ def culculate_R_euler(euler_angles):
 
 
 @jit(nopython=True, cache=True)
-def rotating_the_coordinates(coordinates, R):
+def rotate_coordinates(coordinates, R):
     for i in range(coordinates.shape[0]):
         coordinates[i] = dot(R, coordinates[i])
 

@@ -1,6 +1,6 @@
 import numpy as np
-from numpy import common_type, sqrt, uint8, uint64
-from utilites import culculate_R_euler
+from numpy import sqrt, uint8, uint64
+from utilites import culculate_R_euler, rotate_coordinates
 
 
 class Space:
@@ -87,7 +87,8 @@ class Subject:
         coordinates -= self.coordinates
         if self.rotated:
             coordinates -= self.rotation_center
-            np.dot(coordinates, np.transpose(self.R), out=coordinates)
+            rotate_coordinates(coordinates, self.R)
+            # np.dot(coordinates, np.transpose(self.R), out=coordinates)
             coordinates += self.rotation_center
 
     def inside(self, coordinates):
