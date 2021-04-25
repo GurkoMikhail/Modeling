@@ -1,4 +1,3 @@
-import cProfile
 import os
 os.environ['NUMPY_EXPERIMENTAL_ARRAY_FUNCTION'] = '0'
 
@@ -62,11 +61,15 @@ def start_new_projection(angles, time):
 
     materials = Materials(materials, max_energy=140500)
 
+    import particles
+    particles.Photons.processes.append('CoherentScattering')
+    materials.table = np.array([7, 7, 7, 10, 32, 82])
+
     modeling = Modeling(
         space,
         source,
         materials,
-        solid_angle=((0, -1, 0), 15*np.pi/180),
+        solid_angle=((0, -1, 0), 20*np.pi/180),
         time_step=0.01,
         subject=detector
         )
@@ -76,13 +79,11 @@ def start_new_projection(angles, time):
         phantom.rotate((angle, 0, 0))
         source.rotate((angle, 0, 0))
         modeling.file_name = f'efg3cut {round(angle*180/np.pi, 1)} deg.hdf'
-        cProfile.runctx('modeling.start((0., time))', globals(), locals(), f'Stats/{round(angle*180/np.pi, 1)} deg projection stats.txt')
-        # modeling.start((0., time))
+        modeling.startMP(0., time, 9)
 
 if __name__ == '__main__':
-    time = 0.02
+    time = 15.
     angles = np.linspace(np.pi/4, -3*np.pi/4, 32)
-    # angles = np.linspace(0., -3*np.pi/4, 32)
     processes_number = 32
 
     queue = mp.Queue()
