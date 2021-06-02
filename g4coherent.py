@@ -185,20 +185,3 @@ def generation_theta(energy, Z):
             break
 
     return arccos(cost)
-
-
-# if __name__ == '__main__':
-#     Z = full(10**6, 82)
-#     energy = full(Z.size, 50000)
-#     # energy = linspace(0.1, 1, 100000)
-#     theta = generation_theta(energy, Z)
-#     hist = histogram(cos(theta), 180, (-1, 1))
-#     x = arccos(hist[1][1:])
-#     y = hist[0]
-
-#     import pyqtgraph as pg
-#     from PyQt5 import QtGui
-
-#     pg.mkQApp()
-#     pg.plot(x=x, y=y).setLogMode(False, True)
-#     QtGui.QApplication.instance().exec_()
