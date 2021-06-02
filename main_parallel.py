@@ -8,20 +8,20 @@ from materials import Materials
 import multiprocessing as mp
 
 def start_new_projection(angles, time):
-    size = np.asarray((51.2, 70., 40.))
+    size = np.asarray((53.3, 80., 38.7))
     space = Space(size, 0)
 
-    phantom = np.load('Phantoms/ae3cut.npy')
+    phantom = np.load('Phantoms/ae3.npy')
     phantom = Phantom(
-        coordinates=(0., 12.4, 0.),
+        coordinates=(1.05, 12.4, -3.),
         material=phantom,
         voxel_size=0.4
         )
     space.add_subject(phantom)
 
     detector = Detector(
-        coordinates=(0., 9.5, 0.),
-        size=(51.2, 40., 9.5),
+        coordinates=(0., 0.95, 0.),
+        size=(51.2, 40., 0.95),
         material=4,
         euler_angles=(0, np.pi/2, 0),
         rotation_center=(0., 0., 0.)
@@ -43,7 +43,7 @@ def start_new_projection(angles, time):
     source = Source(
         coordinates=phantom.coordinates,
         activity=300*10**6,
-        distribution=np.load('Phantoms/efg3cut.npy'),
+        distribution=np.load('Phantoms/efg3.npy'),
         voxel_size=0.4,
         radiation_type='Gamma',
         energy=140.5*10**3,
@@ -78,11 +78,11 @@ def start_new_projection(angles, time):
         angle = angles.get()
         phantom.rotate((angle, 0, 0))
         source.rotate((angle, 0, 0))
-        modeling.file_name = f'efg3cut {round(angle*180/np.pi, 1)} deg.hdf'
-        modeling.startMP(0., time, 9)
+        modeling.file_name = f'efg3 {round(angle*180/np.pi, 1)} deg.hdf'
+        modeling.start(0., time)
 
 if __name__ == '__main__':
-    time = 15.
+    time = 20.
     angles = np.linspace(np.pi/4, -3*np.pi/4, 32)
     processes_number = 32
 
