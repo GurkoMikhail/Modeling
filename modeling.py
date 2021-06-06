@@ -44,7 +44,7 @@ class Modeling:
         self.mp = True
         self.lock = Lock()
         processes = []
-        self.source.timer = start_time
+        self.source.set_timer(start_time)
         self.save_modeling_parameters()
         for t in np.arange(start_time, stop_time, self.time_step):
             t = round(t, 5)
@@ -66,7 +66,7 @@ class Modeling:
         print('End!')
 
     def start(self, start_time, stop_time):
-        self.source.timer = start_time
+        self.source.set_timer(start_time)
         self.save_modeling_parameters()
         for t in np.arange(start_time, stop_time, self.time_step):
             t = round(t, 5)
@@ -332,6 +332,9 @@ class Source:
     @property
     def nuclei_number(self):
         return self.activity*self.half_life/log(2)
+
+    def set_timer(self, timer):
+        self.timer = float(timer)
 
     def generate_coordinates(self, n):
         p = self.distribution.ravel()
