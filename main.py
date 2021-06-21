@@ -8,17 +8,17 @@ if __name__ == '__main__':
     size = np.asarray((53.3, 60., 38.7))
     space = Space(size, 0)
 
-    phantom = np.load('Phantoms/ae3_fix.npy')
+    phantom = np.load('Phantoms/ae3.npy')
     phantom = Phantom(
-        coordinates=(1.05, (12.4 - 10.) + 5, -3.),
+        coordinates=(1.05, 12.4, -3.),
         material=phantom,
         voxel_size=0.4
         )
     space.add_subject(phantom)
 
     detector = Detector(
-        coordinates=(0., 9.5, 0.),
-        size=(53.3, 38.7, 9.5),
+        coordinates=(0., 0.95, 0.),
+        size=(53.3, 38.7, 0.95),
         material=4,
         euler_angles=(0, np.pi/2, 0),
         rotation_center=(0., 0., 0.)
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     source = Source(
         coordinates=phantom.coordinates,
         activity=300*10**6,
-        distribution=np.load('Phantoms/efg3_fix.npy'),
+        distribution=np.load('Phantoms/efg3.npy'),
         voxel_size=0.4,
         radiation_type='Gamma',
         energy=140.5*10**3,
@@ -69,11 +69,11 @@ if __name__ == '__main__':
         space,
         source,
         materials,
-        solid_angle=((0, -1, 0), 10*np.pi/180),
+        solid_angle=None,
         time_step=0.01,
-        file_name='efg3_fix 0.0 deg.hdf',
+        file_name='efg3_full_angle 0.0 deg.hdf',
         subject=detector
         )
 
-    modeling.startMP(0, 15, 32)
+    modeling.startMP(0, 20, 2)
 
