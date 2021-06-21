@@ -75,5 +75,5 @@ if __name__ == '__main__':
         subject=detector
         )
 
-    modeling.startMP(0, 20, 2)
+    modeling.startMP(0, 20, 32)
 
