@@ -227,7 +227,7 @@ class ParticleFlow:
         self.min_energy = 0
 
     def low_energy(self):
-        indices = np.nonzero(self.particles.energy <= self.min_energy)[0]
+        indices = (self.particles.energy <= self.min_energy).nonzero()[0]
         return indices
         
     def off_the_solid_angle(self):
@@ -237,7 +237,7 @@ class ParticleFlow:
         cos_alpha = vector[0]*self.particles.direction[:, 0]
         cos_alpha += vector[1]*self.particles.direction[:, 1]
         cos_alpha += vector[2]*self.particles.direction[:, 2]
-        indices = np.nonzero(cos_alpha <= cos(angle))[0]
+        indices = (cos_alpha <= cos(angle)).nonzero()[0]
         self.particles.delete(indices)
         return indices
 

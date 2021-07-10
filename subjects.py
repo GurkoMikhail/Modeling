@@ -1,5 +1,5 @@
 import numpy as np
-from numpy import sqrt, uint8, uint64
+from numpy import sqrt, abs, mod, uint8, uint64
 from utilites import culculate_R_euler, rotate_coordinates
 
 
@@ -20,20 +20,20 @@ class Space:
     def outside(self, coordinates):
         """ Список попавших внутрь пространства"""
         outside = (coordinates > self.size) + (coordinates < 0)
-        indices = np.nonzero(np.any(outside, axis=1))[0]
+        indices = outside.any(axis=1).nonzero()[0]
         return indices
 
     def inside(self, coordinates):
         """ Список попавших внутрь пространства """
         inside = (coordinates <= self.size)*(coordinates >= 0)
-        indices = np.nonzero(np.all(inside, axis=1))[0]
+        indices = inside.all(axis=1).nonzero()[0]
         return indices
 
     def get_material(self, coordinates):
         """ Получить список веществ """
         material = np.full(coordinates.shape[0], self.material, uint8)
         for subject in self.subjects:
-            off_subjects = np.nonzero(material == self.material)[0]
+            off_subjects = (material == self.material).nonzero()[0]
             coordinates_off_subjects = coordinates[off_subjects]
             inside_subject = subject.inside(coordinates_off_subjects)
             subjects_material = subject.get_material_indices(coordinates_off_subjects[inside_subject])
@@ -95,7 +95,7 @@ class Subject:
         """ Список попавших внутрь объекта с преобразованием координат """
         self.convert_to_local_coordinates(coordinates)
         inside = (coordinates <= self.size)*(coordinates >= 0)
-        indices = np.nonzero(np.all(inside, axis=1))[0]
+        indices = inside.all(axis=1).nonzero()[0]
         return indices
 
     def get_material_indices(self, coordinates):
@@ -156,19 +156,19 @@ class Collimator(Subject):
     def get_collimated(self, coordinates):
         collimated = np.zeros(coordinates.shape[0], dtype=uint8)
         corners = np.stack((self.period, self.period/2))
-        coordinates = np.mod(coordinates[:, :2], self.period)
+        coordinates = mod(coordinates[:, :2], self.period)
         coordinates -= corners[1]
         corners -= corners[1]
-        np.absolute(coordinates, out=coordinates)
+        abs(coordinates, out=coordinates)
         a = sqrt(3)/4
         for corner in corners:
             dcoordinates = coordinates - corner
             dcoordinates /= self.hole_diameter
-            np.absolute(dcoordinates, out=dcoordinates)
+            abs(dcoordinates, out=dcoordinates)
             dx = dcoordinates[:, 0]
             dy = dcoordinates[:, 1]
             collimated += (dy <= a)*(a*dx + dy/4 <= a/2)
-        return np.nonzero(collimated)[0]
+        return collimated.nonzero()[0]
 
     def get_material_indices(self, coordinates):
         material = super().get_material_indices(coordinates)
