@@ -21,14 +21,10 @@ class Particles:
         self._coordinates = np.asarray(coordinates)
         self._distance_traveled = np.zeros_like(self._energy)
 
-    def move(self, distance, indices=None):
+    def move(self, distance):
         """ Переместить частицы """
-        if indices is None:
-            self._coordinates += self._direction*np.column_stack([distance]*3)
-            self._distance_traveled += distance
-        else:
-            self._coordinates[indices] += self._direction[indices]*np.column_stack([distance]*3)
-            self._distance_traveled[indices] += distance
+        self._distance_traveled += distance
+        self._coordinates += self._direction*distance.reshape((-1, 1))
 
     def rotate(self, theta, phi, indices):
         """
