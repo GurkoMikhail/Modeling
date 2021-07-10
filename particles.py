@@ -1,5 +1,5 @@
 import numpy as np
-from numpy import cos, sin
+from numpy import cos, sin, abs
 
 
 class Particles:
@@ -49,12 +49,25 @@ class Particles:
         """ Измененить энергии частиц """
         self._energy[indices] -= energy_change
 
+    def add(self, particles):
+        """ Добавить частицы """
+        self._energy= np.concatenate([self._energy, particles._energy])
+        self._direction = np.concatenate([self._direction, particles.direction])
+        self._coordinates = np.concatenate([self._coordinates, particles.coordinates])
+        self._distance_traveled = np.concatenate([self._distance_traveled, particles._distance_traveled])
+
     def delete(self, indices):
-        """ Удалить частицы из рассмотрения """
+        """ Удалить частицы """
         self._energy = np.delete(self._energy, indices)
         self._direction = np.delete(self._direction, indices, 0)
         self._coordinates = np.delete(self._coordinates, indices, 0)
         self._distance_traveled = np.delete(self._distance_traveled, indices)
+
+    def replace(self, particles, indices):
+        self._energy[indices] = particles._energy
+        self._direction[indices] = particles._direction
+        self._coordinates[indices] = particles.coordinates
+        self._distance_traveled[indices] = particles._distance_traveled
 
     @property
     def energy(self):
@@ -100,13 +113,25 @@ class Photons(Particles):
     def __init__(self, energy, direction, coordinates, emission_time):
         super().__init__(energy, direction, coordinates)
         self._emission_time = np.asarray(emission_time)
-        self._emission_coordinates = np.copy(self.coordinates)
+        self._emission_coordinates = self.coordinates.copy()
+
+    def add(self, particles):
+        """ Добавить частицы """
+        super().add(particles)
+        self._emission_time = np.concatenate([self._emission_time, particles._emission_time])
+        self._emission_coordinates = np.concatenate([self._emission_coordinates,  particles._emission_coordinates])
 
     def delete(self, indices):
-        """ Удалить частицы из рассмотрения """
+        """ Удалить частицы """
         super().delete(indices)
         self._emission_time = np.delete(self._emission_time, indices)
         self._emission_coordinates = np.delete(self._emission_coordinates, indices, 0)
+
+    def replace(self, particles, indices):
+        """ Заменить частицы """
+        super().replace(particles, indices)
+        self._emission_time[indices] = particles._emission_time
+        self._emission_coordinates[indices] = particles._emission_coordinates
 
     @property
     def emission_time(self):
