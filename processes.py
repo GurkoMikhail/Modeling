@@ -18,7 +18,6 @@ class Interaction:
         self.lacs = lac_funtions['Total']
         for process in self.processes:
             process.lacs = lac_funtions[process.name]
-        self.data = []
         self.rng_choose = np.random.default_rng()
         self.rng_free_path = np.random.default_rng()
 
@@ -61,6 +60,7 @@ class Interaction:
         return indices
         
     def apply(self, indices):
+        data = {}
         if indices.size:
             lac, materials = self.get_lac(indices)
             max_lac = self.max_lac[indices]
@@ -68,7 +68,9 @@ class Interaction:
             interacted = self.choose_interaction(interaction_probability)
             for i, process in enumerate(self.processes):
                 ind = interacted[i]
-                self.data.append(process.apply(indices[ind], materials[ind]))
+                process_data = process.apply(indices[ind], materials[ind])
+                data.update({process.name: process_data})
+        return data
         
 
 class Process:
@@ -85,13 +87,11 @@ class Process:
 
     def apply(self, interacted):
         """ Применить процесс """
-        name = self.__class__.__name__
         coordinates = self.particles.coordinates[interacted]
         emission_time = self.particles.emission_time[interacted]
         distance_traveled = self.particles.distance_traveled[interacted]
         emission_coordinates = self.particles.emission_coordinates[interacted]
         data = {
-            'Process': name,
             'Coordinates': coordinates,
             'Emission time': emission_time,
             'Distance traveled': distance_traveled,
