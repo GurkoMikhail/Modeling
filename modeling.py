@@ -1,7 +1,6 @@
 from h5py import File
 import numpy as np
 from numpy import pi, sqrt, cos, sin, log
-import utilites
 from particles import Photons
 from processes import Interaction
 from multiprocessing import Process, Queue
@@ -74,18 +73,18 @@ class Modeling(Process):
         start_time = time()
         finished_flows = 0
         for step_data in iter(queue.get, None):
+            finish_time = time() - start_time
+            start_time = time()
             if step_data == 'Finish':
                 finished_flows += 1
                 if finished_flows == self.flow_number:
                     print('Modeling end!')
                     break
                 continue
-            finish_time = time() - start_time
             self.update_step_data(step_data)
             if self.save_dose_data:
                 self.update_dose_data(step_data)
             print(f'\tReal time passed: {finish_time} seconds')
-            start_time = time()
 
     def check_progress_in_file(self):
         try:
@@ -321,7 +320,7 @@ class Source:
     [half_life] = sec
     """
 
-    def __init__(self, coordinates, activity, distribution, voxel_size=0.4, radiation_type='Gamma', energy=140.*10**3, half_life=6*60*60, euler_angles=None, rotation_center=None):
+    def __init__(self, coordinates, activity, distribution, voxel_size=0.4, radiation_type='Gamma', energy=140.*10**3, half_life=6*60*60, rotation_angles=None, rotation_center=None):
         self.coordinates = np.asarray(coordinates)
         self.initial_activity = np.asarray(activity)
         self.distribution = np.asarray(distribution)
@@ -332,22 +331,28 @@ class Source:
         self.energy = energy
         self.half_life = half_life
         self.timer = 0.
-        self.coordinates_table = self._generate_coordinates_table()
         self.rotated = False
-        if euler_angles is not None:
-            self.rotate(euler_angles, rotation_center)
+        self._generate_coordinates_table()
+        if rotation_angles is not None:
+            self.rotate(rotation_angles, rotation_center)
         self.rng_dist = np.random.default_rng()
         self.rng_ddist = np.random.default_rng()
         self.rng_time = np.random.default_rng()
         self.rng_dir = np.random.default_rng()
 
-    def rotate(self, euler_angles, rotation_center=None):
+    def rotate(self, rotation_angles, rotation_center=None):
         self.rotated = True
-        self.euler_angles = np.asarray(euler_angles)
+        self.rotation_angles = np.asarray(rotation_angles)
         if rotation_center is None:
             rotation_center = np.asarray(self.size/2)
         self.rotation_center = rotation_center
-        self.R = np.asarray(utilites.culculate_R_euler(-self.euler_angles))
+        alpha, beta, gamma = self.rotation_angles
+        self.R = np.asarray([
+            [cos(alpha)*cos(beta),  cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma),    cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma) ],
+            [sin(alpha)*cos(beta),  sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma),    sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma) ],
+            [-sin(beta),            cos(beta)*sin(gamma),                                       cos(beta)*cos(gamma)                                    ]
+        ])
+        self._generate_coordinates_table()
 
     def _generate_coordinates_table(self):
         coordinates_table = []
@@ -356,7 +361,11 @@ class Source:
                 for z in np.linspace(0, self.size[2], self.distribution.shape[2]):
                     coordinates_table.append([x, y, z])
         coordinates_table = np.asarray(coordinates_table)
-        return coordinates_table
+        if self.rotated:
+            coordinates_table -= self.rotation_center
+            np.dot(coordinates_table, np.transpose(self.R), out=coordinates_table)
+            coordinates_table += self.rotation_center
+        self.coordinates_table = coordinates_table
 
     @property
     def activity(self):
@@ -371,13 +380,12 @@ class Source:
 
     def generate_coordinates(self, n):
         p = self.distribution.ravel()
-        coordinates = self.coordinates_table[self.rng_dist.choice(np.arange(p.size), n, p=p)]
+        indices = np.nonzero(p)[0]
+        p = p[indices]
+        indices = self.rng_dist.choice(indices, n, p=p)
+        coordinates = self.coordinates_table[indices]
         dcoordinates = self.rng_ddist.uniform(0, self.voxel_size, coordinates.shape)
         coordinates += dcoordinates
-        if self.rotated:
-            coordinates -= self.rotation_center
-            np.dot(coordinates, np.transpose(self.R), out=coordinates)
-            coordinates += self.rotation_center
         coordinates += self.coordinates
         return coordinates
 

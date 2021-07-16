@@ -1,6 +1,5 @@
 import numpy as np
-from numpy import sqrt, abs, mod, uint8, uint64
-from utilites import culculate_R_euler, rotate_coordinates
+from numpy import cos, sin, sqrt, abs, mod, uint8, uint64
 
 
 class Space:
@@ -61,34 +60,38 @@ class Subject:
 
     [size = (dx, dy, dz)] = cm
     
-    [euler_angles = (alpha, beta, gamma)] = radian
+    [rotation_angles = (alpha, beta, gamma)] = radian
     
     [material] = uint[:]
     """
 
-    def __init__(self, coordinates, size, material, euler_angles=None, rotation_center=None):
+    def __init__(self, coordinates, size, material, rotation_angles=None, rotation_center=None):
         self.coordinates = np.asarray(coordinates)
         self.size = np.asarray(size)
         self.material = material
         self.rotated = False
-        if euler_angles is not None:
-            self.rotate(euler_angles, rotation_center)
+        if rotation_angles is not None:
+            self.rotate(rotation_angles, rotation_center)
 
-    def rotate(self, euler_angles, rotation_center=None):
+    def rotate(self, rotation_angles, rotation_center=None):
         self.rotated = True
-        self.euler_angles = np.asarray(euler_angles)
+        self.rotation_angles = np.asarray(rotation_angles)
         if rotation_center is None:
             rotation_center = np.asarray(self.size/2)
         self.rotation_center = rotation_center
-        self.R = np.asarray(culculate_R_euler(self.euler_angles))
+        alpha, beta, gamma = self.rotation_angles
+        self.R = np.asarray([
+            [cos(alpha)*cos(beta),  cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma),    cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma) ],
+            [sin(alpha)*cos(beta),  sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma),    sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma) ],
+            [-sin(beta),            cos(beta)*sin(gamma),                                       cos(beta)*cos(gamma)                                    ]
+        ])
 
     def convert_to_local_coordinates(self, coordinates):
         """ Преобразовать в локальные координаты """
         coordinates -= self.coordinates
         if self.rotated:
             coordinates -= self.rotation_center
-            rotate_coordinates(coordinates, self.R)
-            # np.dot(coordinates, np.transpose(self.R), out=coordinates)
+            np.dot(coordinates, np.transpose(self.R), out=coordinates)
             coordinates += self.rotation_center
 
     def inside(self, coordinates):
@@ -115,9 +118,9 @@ class Phantom(Subject):
     [voxel_size] = cm
     """
 
-    def __init__(self, coordinates, material, voxel_size, euler_angles=None, rotation_center=None):
+    def __init__(self, coordinates, material, voxel_size, rotation_angles=None, rotation_center=None):
         size = np.asarray(material.shape)*voxel_size
-        super().__init__(coordinates, size, material, euler_angles, rotation_center)
+        super().__init__(coordinates, size, material, rotation_angles, rotation_center)
         self.voxel_size = voxel_size
 
     def get_material_indices(self, coordinates):
@@ -133,7 +136,7 @@ class Collimator(Subject):
 
     [coordinates = (x, y, z)] = cm
     
-    [euler_angles = (alpha, beta, gamma)] = radian
+    [rotation_angles = (alpha, beta, gamma)] = radian
     
     [size = (dx, dy, dz)] = cm
     
@@ -144,8 +147,8 @@ class Collimator(Subject):
     [material] = uint
     """
 
-    def __init__(self, coordinates, size, material, hole_diameter, septa, space_material, euler_angles=None, rotation_center=None):
-        super().__init__(coordinates, size, material, euler_angles, rotation_center)
+    def __init__(self, coordinates, size, material, hole_diameter, septa, space_material, rotation_angles=None, rotation_center=None):
+        super().__init__(coordinates, size, material, rotation_angles, rotation_center)
         self.hole_diameter = hole_diameter
         self.septa = septa
         self.space_material = space_material
