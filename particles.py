@@ -108,7 +108,7 @@ class Photons(Particles):
     [emission_time] = sec
     """
 
-    processes = ['PhotoelectricEffect', 'ComptonScattering']
+    processes = ['PhotoelectricEffect', 'ComptonScattering', 'CoherentScattering']
 
     def __init__(self, energy, direction, coordinates, emission_time):
         super().__init__(energy, direction, coordinates)
