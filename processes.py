@@ -13,7 +13,7 @@ class Interaction:
         self.materials = materials
         self.processes = []
         for process in self.particles.processes:
-            self.processes.append(processes[process](particles, self.materials))
+            self.processes.append(processes[process](self.particles, self.materials))
         lac_funtions = self.materials.construct_lac_funtions(self.processes)
         self.lacs = lac_funtions['Total']
         for process in self.processes:
@@ -21,16 +21,35 @@ class Interaction:
         self.rng_choose = np.random.default_rng()
         self.rng_free_path = np.random.default_rng()
 
-    def get_lac(self, indices):
-        coordinates = self.particles.coordinates[indices]
-        energy = self.particles.energy[indices]
-        materials = self.space.get_material(coordinates)
+    def casting(self):
+        subject_index, distance = self.space.ray_casting(
+            self.particles.coordinates,
+            self.particles.direction
+            )
+        materials = self.space.get_heaviest_material(subject_index)
+        free_path = self.get_free_path(materials, self.particles.energy)
+        interacted = (free_path < distance).nonzero()[0]
+        distance[interacted] = free_path[interacted]
+        self.particles.move(distance)
+        inside_space = self.space.inside(self.particles.coordinates[interacted])
+        interacted = interacted[inside_space]
+        interaction_data = self.apply(interacted)
+        return interaction_data
+
+    def get_processes_lac(self, materials, energy):
         lac_out = np.zeros((len(self.processes), energy.size))
         for material in np.unique(materials):
-            indices = np.nonzero(materials == material)[0]
+            indices = (materials == material).nonzero()[0]
             for i, process in enumerate(self.processes):
                 lac_out[i, indices] = process.lacs[material](energy[indices])
         return lac_out, materials
+
+    def get_total_lac(self, materials, energy):
+        total_lac = np.empty_like(energy)
+        for material in np.unique(materials):
+            indices = (materials == material).nonzero()[0]
+            total_lac[indices] = self.lacs[material](energy[indices])
+        return total_lac
 
     def get_max_lac(self):
         energy = self.particles.energy
@@ -39,11 +58,11 @@ class Interaction:
         for material in materials:
             total_lac.append(self.lacs[material](energy))
         total_lac = np.stack(total_lac)
-        return np.max(total_lac, axis=0)
+        return total_lac.max(axis=0)
 
-    def get_free_path(self):
-        self.max_lac = self.get_max_lac()
-        free_path = self.rng_free_path.exponential(1/self.max_lac, self.particles.count)
+    def get_free_path(self, material, energy):
+        self.max_lac = self.get_total_lac(material, energy)
+        free_path = self.rng_free_path.exponential(1/self.max_lac, material.size)
         return free_path
 
     def choose_interaction(self, probability):
@@ -54,7 +73,7 @@ class Interaction:
             p1 = p0 + p
             in_delta = (p0 <= rnd)
             in_delta *= (rnd <= p1)
-            ind = np.nonzero(in_delta)[0]
+            ind = in_delta.nonzero()[0]
             indices.append(ind)
             p0 = p1
         return indices
@@ -62,7 +81,10 @@ class Interaction:
     def apply(self, indices):
         data = {}
         if indices.size:
-            lac, materials = self.get_lac(indices)
+            coordinates = self.particles.coordinates[indices]
+            energy = self.particles.energy[indices]
+            materials = self.space.get_material(coordinates)
+            lac, materials = self.get_processes_lac(materials, energy)
             max_lac = self.max_lac[indices]
             interaction_probability = lac/max_lac
             interacted = self.choose_interaction(interaction_probability)

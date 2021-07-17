@@ -114,10 +114,11 @@ class Modeling(Process):
                 data['Emission coordinates'].append(dat['Emission coordinates'])
         else:
             for dat in step_data['Interaction'].values():
-                coordinates = dat['Coordinates'].copy()
+                coordinates = dat['Coordinates']
                 energy_transfer = dat['Energy transfer']
                 emission_time = dat['Emission time']
                 emission_coordinates = dat['Emission coordinates']
+                coordinates = self.subject.convert_to_local_coordinates(coordinates)
                 inside_subject = self.subject.inside(coordinates)
                 if inside_subject.size > 0:
                     data['Coordinates'].append(coordinates[inside_subject])
@@ -267,19 +268,17 @@ class ParticleFlow(Process):
         indices = np.concatenate(indices)
         return indices
 
-    def valid_particles(self, particles):
-        indices = self.space.inside(particles.coordinates)
-        return indices
+    def send_data(self, data):
+        data = {
+            'Interaction': data,
+            'Source timer': self.source.timer,
+            'Step': self.step
+            }
+        self.queue.put(data)
 
     def next_step(self, particles, interaction):
-        free_path = interaction.get_free_path()
-        particles.move(free_path)
-        data = {}
-        interaction_data = interaction.apply(self.valid_particles(particles))
-        data.update({'Interaction': interaction_data})
-        data.update({'Source timer': self.source.timer})
-        data.update({'Step': self.step})
-        self.queue.put(data)
+        interaction_data = interaction.casting()
+        self.send_data(interaction_data)
         invalid_particles = self.invalid_particles(particles)
         invalid_particles_number = invalid_particles.size
         if self.source.timer <= self.stop_time:

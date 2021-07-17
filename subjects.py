@@ -1,5 +1,5 @@
 import numpy as np
-from numpy import cos, sin, sqrt, abs, mod, uint8, uint64
+from numpy import cos, sin, sqrt, abs, mod, uint8, uint64, inf
 
 
 class Space:
@@ -16,8 +16,24 @@ class Space:
             if arg in kwds:
                 setattr(self, arg, kwds[arg])
 
+    def ray_casting(self, coordinates, direction):
+        """ Алгоритм бросания лучей для определения объекта местонахождения и длины пути до столкновения """
+        path_length = np.full((coordinates.shape[0], ), inf)
+        current_subject = np.zeros_like(path_length, dtype=uint8)
+        for subject_index, subject in enumerate(self.subjects, 1):
+            distance, inside_subject = subject.path_casting(coordinates, direction)
+            current_subject[inside_subject] = subject_index
+            intersectional = (path_length > distance).nonzero()[0]
+            path_length[intersectional] = distance[intersectional]
+        return current_subject, path_length
+
+    def get_heaviest_material(self, subject_index):
+        heaviest_materials = np.array([0, 3, 4, 5])
+        heaviest_material = heaviest_materials[subject_index]
+        return heaviest_material
+
     def outside(self, coordinates):
-        """ Список попавших внутрь пространства"""
+        """ Список непопавших внутрь пространства"""
         outside = (coordinates > self.size) + (coordinates < 0)
         indices = outside.any(axis=1).nonzero()[0]
         return indices
@@ -33,7 +49,7 @@ class Space:
         material = np.full(coordinates.shape[0], self.material, uint8)
         for subject in self.subjects:
             off_subjects = (material == self.material).nonzero()[0]
-            coordinates_off_subjects = coordinates[off_subjects]
+            coordinates_off_subjects = subject.convert_to_local_coordinates(coordinates[off_subjects])
             inside_subject = subject.inside(coordinates_off_subjects)
             subjects_material = subject.get_material_indices(coordinates_off_subjects[inside_subject])
             material[off_subjects[inside_subject]] = subjects_material
@@ -72,6 +88,7 @@ class Subject:
         self.rotated = False
         if rotation_angles is not None:
             self.rotate(rotation_angles, rotation_center)
+        self.normals, self.D = self._culculate_equation_coeffieients()
 
     def rotate(self, rotation_angles, rotation_center=None):
         self.rotated = True
@@ -85,24 +102,69 @@ class Subject:
             [sin(alpha)*cos(beta),  sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma),    sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma) ],
             [-sin(beta),            cos(beta)*sin(gamma),                                       cos(beta)*cos(gamma)                                    ]
         ])
+        self.R = self.R.T
+
+    def _culculate_equation_coeffieients(self):
+        normals = np.asarray([
+            [-1.,  0.,  0.],
+            [ 0., -1.,  0.],
+            [ 0.,  0., -1.],
+            [ 1.,  0.,  0.],
+            [ 0.,  1.,  0.],
+            [ 0.,  0.,  1.],
+        ])
+        normals = normals.T
+        D = np.asarray([
+            0.,
+            0.,
+            0.,
+            self.size[0],
+            self.size[1],
+            self.size[2]
+        ])
+        return normals, D
+
+    def path_casting(self, coordinates, direction, local=False):
+        if not local:
+            coordinates = self.convert_to_local_coordinates(coordinates)
+            direction = self.convert_to_local_direction(direction)
+        inside = self.inside(coordinates)
+        distance = -np.matmul(coordinates, self.normals)
+        distance += self.D
+        distance /= np.matmul(direction, self.normals)
+        distance[distance <= 0] = inf
+        distance = distance.min(axis=1) + 10**(-8)
+        return distance, inside
 
     def convert_to_local_coordinates(self, coordinates):
         """ Преобразовать в локальные координаты """
+        coordinates = coordinates.copy()
         coordinates -= self.coordinates
         if self.rotated:
             coordinates -= self.rotation_center
-            np.dot(coordinates, np.transpose(self.R), out=coordinates)
+            np.matmul(coordinates, self.R, out=coordinates)
             coordinates += self.rotation_center
+        return coordinates
 
-    def inside(self, coordinates):
-        """ Список попавших внутрь объекта с преобразованием координат """
-        self.convert_to_local_coordinates(coordinates)
+    def convert_to_local_direction(self, direction):
+        """ Преобразовать направление в локальное """
+        direction = direction.copy()
+        if self.rotated:
+            np.matmul(direction, self.R, out=direction)
+        return direction
+
+    def inside(self, coordinates, local=True):
+        """ Список попавших внутрь """
+        if not local:
+            coordinates = self.convert_to_local_coordinates(coordinates)
         inside = (coordinates <= self.size)*(coordinates >= 0)
         indices = inside.all(axis=1).nonzero()[0]
         return indices
 
-    def get_material_indices(self, coordinates):
+    def get_material_indices(self, coordinates, local=True):
         """ Получить индексы материала """
+        if not local:
+            coordinates = self.convert_to_local_coordinates(coordinates)
         material = np.full(coordinates.shape[0], self.material, dtype=uint8)
         return material
 
@@ -123,7 +185,9 @@ class Phantom(Subject):
         super().__init__(coordinates, size, material, rotation_angles, rotation_center)
         self.voxel_size = voxel_size
 
-    def get_material_indices(self, coordinates):
+    def get_material_indices(self, coordinates, local=True):
+        if not local:
+            coordinates = self.convert_to_local_coordinates(coordinates)
         coordinates = coordinates/self.voxel_size
         coordinates = coordinates.astype(uint64, copy=False)
         material_indices = self.material[(coordinates[:, 0], coordinates[:, 1], coordinates[:, 2])]
@@ -173,8 +237,8 @@ class Collimator(Subject):
             collimated += (dy <= a)*(a*dx + dy/4 <= a/2)
         return collimated.nonzero()[0]
 
-    def get_material_indices(self, coordinates):
-        material = super().get_material_indices(coordinates)
+    def get_material_indices(self, coordinates, local=True):
+        material = super().get_material_indices(coordinates, local)
         collimated = self.get_collimated(coordinates)
         material[collimated] = self.space_material
         return material
