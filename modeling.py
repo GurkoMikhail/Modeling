@@ -1,6 +1,6 @@
 from h5py import File
 import numpy as np
-from numpy import pi, sqrt, cos, sin, log
+from numpy import pi, sqrt, cos, sin, log, int64
 from particles import Photons
 from processes import Interaction
 from multiprocessing import Process, Queue
@@ -252,7 +252,7 @@ class ParticleFlow(Process):
 
     def off_the_solid_angle(self):
         if self.solid_angle is None:
-            return []
+            return np.array([], dtype=int64)
         vector, angle = self.solid_angle
         cos_alpha = vector[0]*self.particles.direction[:, 0]
         cos_alpha += vector[1]*self.particles.direction[:, 1]
