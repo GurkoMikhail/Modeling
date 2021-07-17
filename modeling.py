@@ -19,7 +19,7 @@ class Modeling(Process):
         self.materials = materials
         self.stop_time = stop_time
         self.start_time = 0.
-        self.solid_angle = ((0, -1, 0), 20*pi/180)
+        self.solid_angle = None
         self.particles_number = 10**6
         self.flow_number = 1
         self.file_name = f'{self}'
@@ -209,8 +209,8 @@ class Modeling(Process):
         except Exception:
             print(f'Не удалось записать параметры {self.file_name}')
         else:
-            solidAngle = group.create_group('Solid angle')
             if self.solid_angle is not None:
+                solidAngle = group.create_group('Solid angle')
                 solidAngle.create_dataset('Vector', data=self.solid_angle[0])
                 solidAngle.create_dataset('Angle', data=self.solid_angle[1])
             materialsGroup = group.create_group('Dict of materials indices')
@@ -258,13 +258,13 @@ class ParticleFlow(Process):
         cos_alpha += vector[1]*self.particles.direction[:, 1]
         cos_alpha += vector[2]*self.particles.direction[:, 2]
         indices = (cos_alpha <= cos(angle)).nonzero()[0]
-        self.particles.delete(indices)
         return indices
 
     def invalid_particles(self, particles):
         indices = []
         indices.append((particles.energy <= self.min_energy).nonzero()[0])
         indices.append(self.space.outside(particles.coordinates))
+        indices.append(self.off_the_solid_angle())
         indices = np.concatenate(indices)
         return indices
 
@@ -293,7 +293,6 @@ class ParticleFlow(Process):
         print(f'Flow started')
         particles = self.source.generate_particles(self.particles_number)
         interaction = Interaction(particles, self.space, self.materials)
-        self.off_the_solid_angle()
         start = time()
         while particles.count > 0:
                 self.next_step(particles, interaction)
