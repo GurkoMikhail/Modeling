@@ -334,10 +334,14 @@ class Source:
         self._generate_coordinates_table()
         if rotation_angles is not None:
             self.rotate(rotation_angles, rotation_center)
+        self._initialized = False
+
+    def _initialize(self):
         self.rng_dist = np.random.default_rng()
         self.rng_ddist = np.random.default_rng()
         self.rng_time = np.random.default_rng()
         self.rng_dir = np.random.default_rng()
+        self._initialized = True
 
     def rotate(self, rotation_angles, rotation_center=None):
         self.rotated = True
@@ -392,7 +396,7 @@ class Source:
         dt = log((self.nuclei_number + n)/self.nuclei_number)*self.half_life/log(2)
         a = 2**(-self.timer/self.half_life)
         b = 2**(-(self.timer + dt)/self.half_life)
-        alpha = (b - a)*self.rng_time.random(n) + a
+        alpha = self.rng_time.uniform(b, a, n)
         emission_time = -log(alpha)*self.half_life/log(2)
         return emission_time, dt
 
@@ -407,6 +411,8 @@ class Source:
         return directions
 
     def generate_particles(self, n):
+        if not self._initialized:
+            self._initialize()
         energies = np.full(n, self.energy)
         directions = self.generate_directions(n)
         coordinates = self.generate_coordinates(n)
