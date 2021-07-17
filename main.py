@@ -12,7 +12,8 @@ if __name__ == '__main__':
     phantom = Phantom(
         coordinates=(1.05, 12.4, -3.),
         material=phantom,
-        voxel_size=0.4
+        voxel_size=0.4,
+        # rotation_angles=(0, 0, np.pi/2)
         )
     space.add_subject(phantom)
 
@@ -20,7 +21,7 @@ if __name__ == '__main__':
         coordinates=(0., 0.95, 0.),
         size=(53.3, 38.7, 0.95),
         material=4,
-        euler_angles=(0, np.pi/2, 0),
+        rotation_angles=(0, 0, -np.pi/2),
         rotation_center=(0., 0., 0.)
         )
     space.add_subject(detector)
@@ -32,7 +33,7 @@ if __name__ == '__main__':
         hole_diameter=0.111,
         septa=0.016,
         space_material=space.material,
-        euler_angles=detector.euler_angles,
+        rotation_angles=detector.rotation_angles,
         rotation_center=detector.rotation_center
         )
     space.add_subject(collimator)
@@ -44,7 +45,9 @@ if __name__ == '__main__':
         voxel_size=0.4,
         radiation_type='Gamma',
         energy=140.5*10**3,
-        half_life=6*60*60
+        half_life=6*60*60,
+        # rotation_angles=phantom.rotation_angles,
+        # rotation_center=phantom.rotation_center
         )
 
 
@@ -59,9 +62,6 @@ if __name__ == '__main__':
 
     materials = Materials(materials, max_energy=140500)
 
-
-    import particles
-    particles.Photons.processes.append('CoherentScattering')
     materials.table = np.array([7, 7, 7, 10, 32, 82])
 
 
@@ -69,11 +69,13 @@ if __name__ == '__main__':
         space,
         source,
         materials,
-        solid_angle=None,
-        time_step=0.01,
+        stop_time=1,
+        particles_number=10**7,
+        flow_number=2,
         file_name='efg3_full_angle 0.0 deg.hdf',
         subject=detector
         )
 
-    modeling.startMP(0, 20, 32)
+    modeling.start()
+    modeling.join()
 
