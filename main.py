@@ -1,6 +1,10 @@
 import numpy as np
-from subjects import Space, Phantom, Collimator, Detector
-from modeling import Source, Modeling
+from subjects import Space
+from phantoms import ae3
+from collimators import SiemensSymbiaTSeriesLEHR
+from detectors import SiemensSymbiaTSeries3_8
+from modeling import Modeling
+from sources import efg3
 from materials import Materials
 
 
@@ -8,44 +12,31 @@ if __name__ == '__main__':
     size = np.asarray((53.3, 60., 38.7))
     space = Space(size, 0)
 
-    phantom = np.load('Phantoms/ae3.npy')
-    phantom = Phantom(
+    phantom = ae3(
         coordinates=(1.05, 12.4, -3.),
-        material=phantom,
-        voxel_size=0.4,
         # rotation_angles=(0, 0, np.pi/2)
         )
     space.add_subject(phantom)
 
-    detector = Detector(
+    detector = SiemensSymbiaTSeries3_8(
         coordinates=(0., 0.95, 0.),
-        size=(53.3, 38.7, 0.95),
-        material=4,
+        size=(53.3, 38.7),
         rotation_angles=(0, 0, -np.pi/2),
         rotation_center=(0., 0., 0.)
         )
     space.add_subject(detector)
 
-    collimator = Collimator(
+    collimator = SiemensSymbiaTSeriesLEHR(
         coordinates=(detector.coordinates[0], detector.coordinates[1] + 0.5 + 2.4, detector.coordinates[2]),
-        size=(*detector.size[:2], 2.4),
-        material=5,
-        hole_diameter=0.111,
-        septa=0.016,
-        space_material=space.material,
+        size=detector.size[:2],
         rotation_angles=detector.rotation_angles,
         rotation_center=detector.rotation_center
         )
     space.add_subject(collimator)
 
-    source = Source(
+    source = efg3(
         coordinates=phantom.coordinates,
         activity=300*10**6,
-        distribution=np.load('Phantoms/efg3.npy'),
-        voxel_size=0.4,
-        radiation_type='Gamma',
-        energy=140.5*10**3,
-        half_life=6*60*60,
         # rotation_angles=phantom.rotation_angles,
         # rotation_center=phantom.rotation_center
         )
@@ -60,7 +51,7 @@ if __name__ == '__main__':
         'Elemental media/Pb':                                       5,
     }
 
-    materials = Materials(materials, max_energy=140500)
+    materials = Materials(materials, max_energy=source.energy)
 
     materials.table = np.array([7, 7, 7, 10, 32, 82])
 
