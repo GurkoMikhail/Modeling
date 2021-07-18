@@ -7,20 +7,21 @@ from modeling import Modeling
 from sources import efg3
 from materials import Materials
 
-
 if __name__ == '__main__':
-    size = np.asarray((53.3, 60., 38.7))
+    modelings = []
+    angles = np.linspace(-np.pi/4, 3*np.pi/4, 60)
+
+    size = np.asarray((53.3, 100., 53.3))
     space = Space(size, 0)
 
     phantom = ae3(
-        coordinates=(1.05, 12.4, -3.),
-        # rotation_angles=(0, 0, np.pi/2)
+        coordinates=(1.05, 3.85, 1.05),
         )
     space.add_subject(phantom)
 
     detector = SiemensSymbiaTSeries3_8(
         coordinates=(0., 0.95, 0.),
-        size=(53.3, 38.7),
+        size=(53.3, 53.3),
         rotation_angles=(0, 0, -np.pi/2),
         rotation_center=(0., 0., 0.)
         )
@@ -37,10 +38,7 @@ if __name__ == '__main__':
     source = efg3(
         coordinates=phantom.coordinates,
         activity=300*10**6,
-        # rotation_angles=phantom.rotation_angles,
-        # rotation_center=phantom.rotation_center
         )
-
 
     materials = {
         'Compounds and mixtures/Air, Dry (near sea level)':         0,
@@ -55,18 +53,24 @@ if __name__ == '__main__':
 
     materials.table = np.array([7, 7, 7, 10, 32, 82])
 
+    for angle in angles:
+        phantom.rotate((0., 0., angle))
+        source.rotate((0., 0., angle))
+        
+        modeling = Modeling(
+            space,
+            source,
+            materials,
+            stop_time=20.,
+            particles_number=10**7,
+            flow_number=1,
+            file_name=f'efg3_full_angle {round(angle*180/np.pi, 1)} deg.hdf',
+            subject=detector
+            )
+        
+        modelings.append(modeling)
+        modeling.start()
 
-    modeling = Modeling(
-        space,
-        source,
-        materials,
-        stop_time=1,
-        particles_number=10**7,
-        flow_number=2,
-        file_name='efg3_full_angle 0.0 deg.hdf',
-        subject=detector
-        )
-
-    modeling.start()
-    modeling.join()
+    for modeling in modelings:
+        modeling.join()
 
