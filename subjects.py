@@ -10,6 +10,7 @@ class Space:
         self.size = np.asarray(size)    #cm
         self.material = material
         self.subjects = subjects
+        self.heaviest_materials = np.array([0, 3, 4, 5])
         self.args = ['']
 
         for arg in self.args:
@@ -28,8 +29,7 @@ class Space:
         return current_subject, path_length
 
     def get_heaviest_material(self, subject_index):
-        heaviest_materials = np.array([0, 3, 4, 5])
-        heaviest_material = heaviest_materials[subject_index]
+        heaviest_material = self.heaviest_materials[subject_index]
         return heaviest_material
 
     def outside(self, coordinates):
