@@ -9,9 +9,9 @@ from materials import Materials
 
 if __name__ == '__main__':
     modelings = []
-    angles = np.linspace(-np.pi/4, 3*np.pi/4, 60)
+    angles = np.linspace(-np.pi/4, np.pi/2, 4)
 
-    size = np.asarray((53.3, 100., 53.3))
+    size = np.asarray((53.3, 80., 53.3))
     space = Space(size, 0)
 
     phantom = ae3(
@@ -54,15 +54,15 @@ if __name__ == '__main__':
     materials.table = np.array([7, 7, 7, 10, 32, 82])
 
     for angle in angles:
-        phantom.rotate((0., 0., angle))
-        source.rotate((0., 0., angle))
+        phantom.rotate((angle, 0., 0.))
+        source.rotate((angle, 0., 0.))
         
         modeling = Modeling(
             space,
             source,
             materials,
             stop_time=20.,
-            particles_number=10**7,
+            particles_number=10**8,
             flow_number=1,
             file_name=f'efg3_full_angle {round(angle*180/np.pi, 1)} deg.hdf',
             subject=detector
