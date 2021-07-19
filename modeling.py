@@ -24,7 +24,7 @@ class Modeling(Process):
         self.flow_number = 1
         self.file_name = f'{self}'
         self.subject = None
-        self.save_flows = True
+        self.save_emission_data = True
         self.save_dose_data = True
         self.distibution_voxel_size = 0.4
         self.args = [
@@ -34,7 +34,7 @@ class Modeling(Process):
             'flow_number',
             'file_name',
             'subject',
-            'save_flows',
+            'save_emission_data',
             'save_dose_data',
             'distibution_voxel_size'
             ]
@@ -348,12 +348,13 @@ class Source:
         if rotation_center is None:
             rotation_center = np.asarray(self.size/2)
         self.rotation_center = rotation_center
-        alpha, beta, gamma = self.rotation_angles
+        alpha, beta, gamma = -self.rotation_angles
         self.R = np.asarray([
             [cos(alpha)*cos(beta),  cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma),    cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma) ],
             [sin(alpha)*cos(beta),  sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma),    sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma) ],
             [-sin(beta),            cos(beta)*sin(gamma),                                       cos(beta)*cos(gamma)                                    ]
         ])
+        self.R = self.R.T
         self._generate_coordinates_table()
 
     def _generate_coordinates_table(self):
@@ -365,8 +366,9 @@ class Source:
         coordinates_table = np.asarray(coordinates_table)
         if self.rotated:
             coordinates_table -= self.rotation_center
-            np.dot(coordinates_table, np.transpose(self.R), out=coordinates_table)
+            np.matmul(coordinates_table, self.R, out=coordinates_table)
             coordinates_table += self.rotation_center
+        coordinates_table += self.coordinates
         self.coordinates_table = coordinates_table
 
     @property
@@ -388,7 +390,6 @@ class Source:
         coordinates = self.coordinates_table[indices]
         dcoordinates = self.rng_ddist.uniform(0, self.voxel_size, coordinates.shape)
         coordinates += dcoordinates
-        coordinates += self.coordinates
         return coordinates
 
     def generate_emission_time(self, n):
