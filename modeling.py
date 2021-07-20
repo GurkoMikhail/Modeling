@@ -119,6 +119,8 @@ class Modeling(Process):
         data = self.modeling_data['Interactions data']
         for dat in step_data['Interaction'].values():
             coordinates = dat['Coordinates']
+            if len(coordinates) == 0:
+                continue
             if self.save_dose_data:
                 dose_distribution = np.histogramdd(
                     sample=coordinates,
