@@ -1,6 +1,6 @@
 from h5py import File
 import numpy as np
-from numpy import pi, sqrt, cos, sin, log, int64
+from numpy import pi, sqrt, cos, sin, log
 from particles import Photons
 from processes import Interaction
 from multiprocessing import Process, Queue
@@ -21,42 +21,55 @@ class Modeling(Process):
         self.start_time = 0.
         self.solid_angle = None
         self.particles_number = 10**6
+        self.iteraction_buffer = 10**3
         self.flow_number = 1
         self.file_name = f'{self}'
         self.subject = None
         self.save_emission_data = True
         self.save_dose_data = True
-        self.distibution_voxel_size = 0.4
+        self.distribution_voxel_size = 0.4
+        self.modeling_data = {
+            'Interactions data': {
+                'Coordinates': [],
+                'Energy transfer': [],
+                'Emission time': [],
+                'Emission coordinates': [],
+                'Distance traveled': []
+            },
+            'Source timer': 0,
+            'Events number': 0
+        }
         self.args = [
             'start_time',
             'solid_angle',
             'particles_number',
+            'iteraction_buffer',
             'flow_number',
             'file_name',
             'subject',
             'save_emission_data',
             'save_dose_data',
-            'distibution_voxel_size'
+            'distribution_voxel_size'
             ]
 
         for arg in self.args:
             if arg in kwds:
                 setattr(self, arg, kwds[arg])
 
-    def generate_flows(self, start_time, stop_time, flow_number=1):
+    def generate_flows(self):
         last_time = self.check_progress_in_file()
-        start_time = max([start_time, last_time])
+        start_time = max([self.start_time, last_time])
         self.source.set_timer(start_time)
-        self.particles_number //= flow_number
-        self.source.initial_activity //= flow_number
-        queue = Queue(maxsize=flow_number)
+        self.particles_number //= self.flow_number
+        self.source.initial_activity //= self.flow_number
+        queue = Queue(maxsize=self.flow_number)
         flows = []
-        for _ in range(flow_number):
+        for _ in range(self.flow_number):
             flow = ParticleFlow(
                 source=self.source,
                 space=self.space,
                 materials=self.materials,
-                stop_time=stop_time,
+                stop_time=self.stop_time,
                 particles_number=self.particles_number,
                 queue=queue,
                 solid_angle=self.solid_angle
@@ -65,26 +78,29 @@ class Modeling(Process):
         return flows, queue
 
     def run(self):
+        print(f'{self.name} started')
         self.source.set_timer(self.start_time)
         self.save_modeling_parameters()
-        flows, queue = self.generate_flows(self.start_time, self.stop_time, self.flow_number)
+        flows, queue = self.generate_flows()
         for flow in flows:
             flow.start()
         start_time = time()
         finished_flows = 0
         for step_data in iter(queue.get, None):
             finish_time = time() - start_time
-            start_time = time()
             if step_data == 'Finish':
                 finished_flows += 1
                 if finished_flows == self.flow_number:
-                    print('Modeling end!')
+                    self.save_modeling_data()
+                    print(f'\tReal time passed: {finish_time} seconds')
+                    print(f'{self.name} ended!')
                     break
                 continue
-            self.update_step_data(step_data)
-            if self.save_dose_data:
-                self.update_dose_data(step_data)
-            print(f'\tReal time passed: {finish_time} seconds')
+            self.update_modeling_data(step_data)
+            if self.modeling_data['Events number'] >= self.iteraction_buffer:
+                self.save_modeling_data()
+                print(f'\tReal time passed: {finish_time} seconds')
+                start_time = time()
 
     def check_progress_in_file(self):
         try:
@@ -93,121 +109,126 @@ class Modeling(Process):
             last_time = float(np.array(last_time))
             file.close()
         except Exception:
-            print(f'Не удалось проверить прогресс')
+            print(f'\tНе удалось проверить прогресс')
             last_time = 0
         finally:
-            print(f'Source timer: {last_time}')
+            print(f'\tSource timer: {last_time}')
             return last_time
 
-    def concatenate_step_data(self, step_data):
-        data = {
-            'Coordinates': [],
-            'Energy transfer': [],
-            'Emission time': [],
-            'Emission coordinates': []
-        }
-        if self.subject is None:
-            for dat in step_data['Interaction'].values():
-                data['Coordinates'].append(dat['Coordinates'])
-                data['Energy transfer'].append(dat['Energy transfer'])
-                data['Emission time'].append(dat['Emission time'])
-                data['Emission coordinates'].append(dat['Emission coordinates'])
-        else:
-            for dat in step_data['Interaction'].values():
-                coordinates = dat['Coordinates']
-                energy_transfer = dat['Energy transfer']
-                emission_time = dat['Emission time']
-                emission_coordinates = dat['Emission coordinates']
+    def update_modeling_data(self, step_data):
+        data = self.modeling_data['Interactions data']
+        for dat in step_data['Interaction'].values():
+            coordinates = dat['Coordinates']
+            if self.save_dose_data:
+                dose_distribution = np.histogramdd(
+                    sample=coordinates,
+                    bins=(self.space.size/self.distribution_voxel_size).astype(int),
+                    range=((0, self.space.size[0]), (0, self.space.size[1]), (0, self.space.size[2])),
+                    weights=dat['Energy transfer']
+                )[0]
+                if 'Dose distribution' in self.modeling_data:
+                    self.modeling_data['Dose distribution'] += dose_distribution
+                else:
+                    self.modeling_data.update({'Dose distribution': dose_distribution})
+            if self.save_emission_data:
+                emission_distribution = np.histogramdd(
+                    sample=dat['Emission coordinates'],
+                    bins=(self.space.size/self.distribution_voxel_size).astype(int),
+                    range=((0, self.space.size[0]), (0, self.space.size[1]), (0, self.space.size[2]))
+                )[0]
+                if 'Emission distribution' in self.modeling_data:
+                    self.modeling_data['Emission distribution'] += emission_distribution
+                else:
+                    self.modeling_data.update({'Emission distribution': emission_distribution})
+            if self.subject is not None:
                 coordinates = self.subject.convert_to_local_coordinates(coordinates)
                 inside_subject = self.subject.inside(coordinates)
-                if inside_subject.size > 0:
-                    data['Coordinates'].append(coordinates[inside_subject])
-                    data['Energy transfer'].append(energy_transfer[inside_subject])
-                    data['Emission time'].append(emission_time[inside_subject])
-                    data['Emission coordinates'].append(emission_coordinates[inside_subject])
-        if len(data['Coordinates']) > 0:
-            data['Coordinates'] = np.concatenate(data['Coordinates'])
-            data['Energy transfer'] = np.concatenate(data['Energy transfer'])
-            data['Emission time'] = np.concatenate(data['Emission time'])
-            data['Emission coordinates'] = np.concatenate(data['Emission coordinates'])
-        return_data = {'Source timer': step_data['Source timer']}
-        return_data.update({'Interactions data': data})
-        return return_data
-
-    def update_step_data(self, step_data):
-        data = self.concatenate_step_data(step_data)
-        source_timer = data['Source timer']
-        data = data['Interactions data']
-        events_number = len(data['Coordinates'])
-        print(f'Source timer: {source_timer} seconds\n'
-            + f'\tGenerated {events_number} events'
-            )
-        if events_number > 0:
-            try:
-                file = File(f'Output data/{self.file_name}', 'r+')
-            except Exception:
-                print(f'Не удалось сохранить Step №{step_data["Step"]}')
+                dat['Coordinates'] = coordinates
+                for key in data.keys():
+                    data[key].append(dat[key][inside_subject])
             else:
-                if not 'Interactions data' in file:
-                    file.create_dataset('Source timer', data=source_timer)
-                    group = file.create_group('Interactions data')
-                    for key in data.keys():
-                        maxshape = list(data[key].shape)
-                        maxshape[0] = None
-                        group.create_dataset(
-                            str(key),
-                            data=data[key],
-                            compression="gzip",
-                            chunks=True,
-                            maxshape=maxshape
-                            )
-                else:
-                    timer = file['Source timer']
-                    timer[...] = max([float(np.array(source_timer)), float(np.array(timer))])
-                    group = file['Interactions data']
-                    for key in group.keys():
-                        group[key].resize(
-                            (group[key].shape[0] + data[key].shape[0]),
-                            axis=0
-                            )
-                        group[key][-data[key].shape[0]:] = data[key]
+                for key in data.keys():
+                    data[key].append(dat[key])
+            self.modeling_data['Events number'] += data['Energy transfer'][-1].size
+        self.modeling_data['Source timer'] = max([self.modeling_data['Source timer'], step_data['Source timer']])
 
-    def update_dose_data(self, step_data):
-        coordinates = []
-        energy_transfer = []
-        for dat in step_data['Interaction'].values():
-                coordinates.append(dat['Coordinates'])
-                energy_transfer.append(dat['Energy transfer'])
-        if len(coordinates) > 0:
-            coordinates = np.concatenate(coordinates)
-            energy_transfer = np.concatenate(energy_transfer)
-            flow_volume = np.histogramdd(
-                sample=coordinates,
-                bins=(self.space.size/self.distibution_voxel_size).astype(np.int),
-                range=((0, self.space.size[0]), (0, self.space.size[1]), (0, self.space.size[2])),
-                weights=energy_transfer
-            )[0]
-            try:
-                file = File(f'Output data/{self.file_name}', 'r+')
-            except Exception:
-                print(f'Не удалось сохранить dose Step №{step_data["Step"]}')
+    def concatenate_modeling_data(self):
+        data = self.modeling_data['Interactions data']
+        for key in data.keys():
+            data[key] = np.concatenate(data[key])
+
+    def save_modeling_data(self):
+        self.concatenate_modeling_data()
+        source_timer = self.modeling_data['Source timer']
+        data = self.modeling_data['Interactions data']
+        events_number = self.modeling_data['Events number']
+        try:
+            file = File(f'Output data/{self.file_name}', 'r+')
+        except Exception:
+            print(f'Не удалось сохранить {self.name}!')
+        else:
+            if not 'Interactions data' in file:
+                file.create_dataset('Source timer', data=source_timer)
+                group = file.create_group('Interactions data')
+                for key in data.keys():
+                    maxshape = list(data[key].shape)
+                    maxshape[0] = None
+                    group.create_dataset(
+                        str(key),
+                        data=data[key],
+                        compression="gzip",
+                        chunks=True,
+                        maxshape=maxshape
+                        )
             else:
+                timer = file['Source timer']
+                timer[...] = max([source_timer, float(np.array(timer))])
+                group = file['Interactions data']
+                for key in group.keys():
+                    group[key].resize(
+                        (group[key].shape[0] + data[key].shape[0]),
+                        axis=0
+                        )
+                    group[key][-data[key].shape[0]:] = data[key]
+            if self.save_dose_data:
                 if not 'Dose distribution' in file:
                     group = file.create_group('Dose distribution')
-                    volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distibution_voxel_size).astype(np.uint), dtype=np.float64))
-                    group.create_dataset('Voxel size', data=self.distibution_voxel_size)
+                    volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distribution_voxel_size).astype(np.uint), dtype=np.float64))
+                    group.create_dataset('Voxel size', data=self.distribution_voxel_size)
                 else:
                     group = file['Dose distribution']
                     volume = group['Volume']
-                volume[...] += flow_volume
-                file.close()
+                volume[...] += self.modeling_data['Dose distribution']
+            if self.save_emission_data:
+                if not 'Emission distribution' in file:
+                    group = file.create_group('Emission distribution')
+                    volume = group.create_dataset('Volume', data=np.zeros((self.space.size/self.distribution_voxel_size).astype(np.uint), dtype=np.float64))
+                    group.create_dataset('Voxel size', data=self.distribution_voxel_size)
+                else:
+                    group = file['Emission distribution']
+                    volume = group['Volume']
+                volume[...] += self.modeling_data['Emission distribution']
+            self.modeling_data = {
+                'Interactions data': {
+                    'Coordinates': [],
+                    'Energy transfer': [],
+                    'Emission time': [],
+                    'Emission coordinates': [],
+                    'Distance traveled': []
+                },
+                'Source timer': 0,
+                'Events number': 0
+            }
+            print(f'{self.name} generated {events_number} events\n'
+                + f'\tSource timer: {source_timer} seconds'
+                )
 
     def save_modeling_parameters(self):
         try:
             file = File(f'Output data/{self.file_name}', 'x')
             group = file.create_group('Modeling parameters')
         except Exception:
-            print(f'Не удалось записать параметры {self.file_name}')
+            print(f'\tНе удалось записать параметры {self.name}')
         else:
             if self.solid_angle is not None:
                 solidAngle = group.create_group('Solid angle')
@@ -252,7 +273,7 @@ class ParticleFlow(Process):
 
     def off_the_solid_angle(self):
         if self.solid_angle is None:
-            return np.array([], dtype=int64)
+            return np.array([], dtype=int)
         vector, angle = self.solid_angle
         cos_alpha = vector[0]*self.particles.direction[:, 0]
         cos_alpha += vector[1]*self.particles.direction[:, 1]
@@ -290,15 +311,15 @@ class ParticleFlow(Process):
 
     def run(self):
         """ Реализация работы процесса """
-        print(f'Flow started')
+        print(f'\t{self.name} started')
         particles = self.source.generate_particles(self.particles_number)
         interaction = Interaction(particles, self.space, self.materials)
         start = time()
         while particles.count > 0:
                 self.next_step(particles, interaction)
         self.queue.put('Finish')
-        print(f'Flow finished\n'
-            + f'\tTime passed: {time() - start} seconds')
+        print(f'\t{self.name} finished\n'
+            + f'\t\tTime passed: {time() - start} seconds')
 
 
 class Source:
