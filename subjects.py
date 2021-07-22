@@ -10,7 +10,6 @@ class Space:
         self.size = np.asarray(size)    #cm
         self.material = material
         self.subjects = subjects
-        self.heaviest_materials = np.array([0, 3, 4, 5])
         self.args = ['']
 
         for arg in self.args:
@@ -28,9 +27,14 @@ class Space:
             path_length[intersectional] = distance[intersectional]
         return current_subject, path_length
 
-    def get_heaviest_material(self, subject_index):
-        heaviest_material = self.heaviest_materials[subject_index]
-        return heaviest_material
+    def get_material_of_subject(self, subject_index):
+        material = np.zeros_like(subject_index)
+        complex_subject = np.zeros_like(subject_index, dtype=bool)
+        for index, subject in enumerate(self.subjects, 1):
+            indices = (subject_index == index).nonzero()[0]
+            material[indices], complex_subject[indices] = subject.heaviest_material
+        complex_subject = complex_subject.nonzero()[0]
+        return material, complex_subject
 
     def outside(self, coordinates):
         """ Список непопавших внутрь пространства"""
@@ -88,7 +92,8 @@ class Subject:
         self.rotated = False
         if rotation_angles is not None:
             self.rotate(rotation_angles, rotation_center)
-        self.normals, self.D = self._culculate_equation_coeffieients()
+        self._culculate_equation_coeffieients()
+        self._find_heaviest_material()
 
     def rotate(self, rotation_angles, rotation_center=None):
         self.rotated = True
@@ -103,6 +108,12 @@ class Subject:
             [-sin(beta),            cos(beta)*sin(gamma),                                       cos(beta)*cos(gamma)                                    ]
         ])
         self.R = self.R.T
+
+    def _find_heaviest_material(self):
+        if type(self.material) is int:
+            self.heaviest_material = (self.material, False)
+        else:
+            self.heaviest_material = (self.material.max(), True)
 
     def _culculate_equation_coeffieients(self):
         normals = np.asarray([
@@ -122,7 +133,7 @@ class Subject:
             self.size[1],
             self.size[2]
         ])
-        return normals, D
+        self.normals, self.D = normals, D
 
     def path_casting(self, coordinates, direction, local=False):
         if not local:
