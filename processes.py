@@ -26,14 +26,19 @@ class Interaction:
             self.particles.coordinates,
             self.particles.direction
             )
-        materials = self.space.get_heaviest_material(subject_index)
-        free_path = self.get_free_path(materials, self.particles.energy)
+        material, complex_subject = self.space.get_material_of_subject(subject_index)
+        total_lac = self.get_total_lac(material, self.particles.energy)
+        free_path = self.get_free_path(total_lac)
         interacted = (free_path < distance).nonzero()[0]
         distance[interacted] = free_path[interacted]
         self.particles.move(distance)
         inside_space = self.space.inside(self.particles.coordinates[interacted])
         interacted = interacted[inside_space]
-        interaction_data = self.apply(interacted)
+        interaction_data = {}
+        if interacted.size:
+            coordinates = self.particles.coordinates[complex_subject]
+            material[complex_subject] = self.space.get_material(coordinates)
+            interaction_data.update(self.apply(interacted, material, total_lac))
         return interaction_data
 
     def get_processes_lac(self, materials, energy):
@@ -42,7 +47,7 @@ class Interaction:
             indices = (materials == material).nonzero()[0]
             for i, process in enumerate(self.processes):
                 lac_out[i, indices] = process.lacs[material](energy[indices])
-        return lac_out, materials
+        return lac_out
 
     def get_total_lac(self, materials, energy):
         total_lac = np.empty_like(energy)
@@ -51,49 +56,37 @@ class Interaction:
             total_lac[indices] = self.lacs[material](energy[indices])
         return total_lac
 
-    def get_max_lac(self):
-        energy = self.particles.energy
-        materials = self.materials.indices_dict.values()
-        total_lac = []
-        for material in materials:
-            total_lac.append(self.lacs[material](energy))
-        total_lac = np.stack(total_lac)
-        return total_lac.max(axis=0)
-
-    def get_free_path(self, material, energy):
-        self.max_lac = self.get_total_lac(material, energy)
-        free_path = self.rng_free_path.exponential(1/self.max_lac, material.size)
+    def get_free_path(self, total_lac):
+        free_path = self.rng_free_path.exponential(1/total_lac, total_lac.size)
         return free_path
 
-    def choose_interaction(self, probability):
+    def choose_interaction(self, probabilities):
         indices = []
-        rnd = self.rng_choose.random(probability[0].size)
+        rnd = self.rng_choose.random(probabilities[0].size)
         p0 = 0
-        for p in probability:
-            p1 = p0 + p
+        for probability in probabilities:
+            p1 = p0 + probability
             in_delta = (p0 <= rnd)
             in_delta *= (rnd <= p1)
             ind = in_delta.nonzero()[0]
             indices.append(ind)
             p0 = p1
         return indices
-        
-    def apply(self, indices):
+    
+    def apply(self, indices, material, total_lac):
         data = {}
-        if indices.size:
-            coordinates = self.particles.coordinates[indices]
-            energy = self.particles.energy[indices]
-            materials = self.space.get_material(coordinates)
-            lac, materials = self.get_processes_lac(materials, energy)
-            max_lac = self.max_lac[indices]
-            interaction_probability = lac/max_lac
-            interacted = self.choose_interaction(interaction_probability)
-            for i, process in enumerate(self.processes):
-                ind = interacted[i]
-                process_data = process.apply(indices[ind], materials[ind])
-                data.update({process.name: process_data})
+        energy = self.particles.energy[indices]
+        material = material[indices]
+        total_lac = total_lac[indices]
+        lacs = self.get_processes_lac(material, energy)
+        interaction_probabilities = lacs/total_lac
+        interacted = self.choose_interaction(interaction_probabilities)
+        for i, process in enumerate(self.processes):
+            ind = interacted[i]
+            process_data = process.apply(indices[ind], material[ind])
+            data.update({process.name: process_data})
         return data
-        
+
 
 class Process:
     """ Класс процесса """
