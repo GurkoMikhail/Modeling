@@ -93,6 +93,7 @@ class Subject:
         self.rotated = False
         if rotation_angles is not None:
             self.rotate(rotation_angles, rotation_center)
+        self._culculate_primitive_size()
         self._culculate_equation_coeffieients()
         self._find_heaviest_material()
         self.complex = False
@@ -111,6 +112,18 @@ class Subject:
         ])
         self.R = self.R.T
 
+    def _culculate_primitive_size(self):
+        primitive_size = np.zeros((3, 2), dtype=float)
+        if type(self.material) is int:
+            primitive_size[:, 1] = self.size
+        else:
+            nonzero = self.material.nonzero()
+            primitive_size[0, 0], primitive_size[0, 1] = nonzero[0].min(), nonzero[0].max()
+            primitive_size[1, 0], primitive_size[1, 1] = nonzero[1].min(), nonzero[1].max()
+            primitive_size[2, 0], primitive_size[2, 1] = nonzero[2].min(), nonzero[2].max()
+            primitive_size *= self.voxel_size
+        self.primitive_size = primitive_size
+
     def _find_heaviest_material(self):
         if type(self.material) is int:
             self.heaviest_material = self.material
@@ -127,14 +140,7 @@ class Subject:
             [ 0.,  0.,  1.],
         ])
         normals = normals.T
-        D = np.asarray([
-            0.,
-            0.,
-            0.,
-            self.size[0],
-            self.size[1],
-            self.size[2]
-        ])
+        D = self.primitive_size.ravel(order='F')
         self.normals, self.D = normals, D
 
     def path_casting(self, coordinates, direction, local=False):
@@ -170,7 +176,7 @@ class Subject:
         """ Список попавших внутрь """
         if not local:
             coordinates = self.convert_to_local_coordinates(coordinates)
-        inside = (coordinates <= self.size)*(coordinates >= 0)
+        inside = (coordinates <= self.primitive_size[:, 1])*(coordinates >= self.primitive_size[:, 0])
         indices = inside.all(axis=1).nonzero()[0]
         return indices
 
@@ -195,8 +201,8 @@ class Phantom(Subject):
 
     def __init__(self, coordinates, material, voxel_size, rotation_angles=None, rotation_center=None):
         size = np.asarray(material.shape)*voxel_size
-        super().__init__(coordinates, size, material, rotation_angles, rotation_center)
         self.voxel_size = voxel_size
+        super().__init__(coordinates, size, material, rotation_angles, rotation_center)
         self.complex = True
 
     def get_material_indices(self, coordinates, local=True):
