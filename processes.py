@@ -38,6 +38,8 @@ class Interaction:
         if interacted.size:
             coordinates = self.particles.coordinates[complex_subject]
             material[complex_subject] = self.space.get_material(coordinates)
+            material = material[interacted]
+            total_lac = total_lac[interacted]
             interaction_data.update(self.apply(interacted, material, total_lac))
         return interaction_data
 
@@ -76,8 +78,6 @@ class Interaction:
     def apply(self, indices, material, total_lac):
         data = {}
         energy = self.particles.energy[indices]
-        material = material[indices]
-        total_lac = total_lac[indices]
         lacs = self.get_processes_lac(material, energy)
         interaction_probabilities = lacs/total_lac
         interacted = self.choose_interaction(interaction_probabilities)

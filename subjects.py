@@ -28,11 +28,12 @@ class Space:
         return current_subject, path_length
 
     def get_material_of_subject(self, subject_index):
-        material = np.zeros_like(subject_index)
+        material = np.full_like(subject_index, self.material)
         complex_subject = np.zeros_like(subject_index, dtype=bool)
         for index, subject in enumerate(self.subjects, 1):
             indices = (subject_index == index).nonzero()[0]
-            material[indices], complex_subject[indices] = subject.heaviest_material
+            material[indices] = subject.heaviest_material
+            complex_subject[indices] = subject.complex
         complex_subject = complex_subject.nonzero()[0]
         return material, complex_subject
 
@@ -94,6 +95,7 @@ class Subject:
             self.rotate(rotation_angles, rotation_center)
         self._culculate_equation_coeffieients()
         self._find_heaviest_material()
+        self.complex = False
 
     def rotate(self, rotation_angles, rotation_center=None):
         self.rotated = True
@@ -111,9 +113,9 @@ class Subject:
 
     def _find_heaviest_material(self):
         if type(self.material) is int:
-            self.heaviest_material = (self.material, False)
+            self.heaviest_material = self.material
         else:
-            self.heaviest_material = (self.material.max(), True)
+            self.heaviest_material = self.material.max()
 
     def _culculate_equation_coeffieients(self):
         normals = np.asarray([
@@ -195,6 +197,7 @@ class Phantom(Subject):
         size = np.asarray(material.shape)*voxel_size
         super().__init__(coordinates, size, material, rotation_angles, rotation_center)
         self.voxel_size = voxel_size
+        self.complex = True
 
     def get_material_indices(self, coordinates, local=True):
         if not local:
@@ -230,6 +233,7 @@ class Collimator(Subject):
         y_period = sqrt(3)/2*self.hole_diameter + self.septa
         x_period = sqrt((2*y_period)**2 - y_period**2)
         self.period = np.stack((x_period, y_period))
+        self.complex = True
 
     def get_collimated(self, coordinates):
         collimated = np.zeros(coordinates.shape[0], dtype=uint8)
