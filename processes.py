@@ -165,7 +165,10 @@ class ComptonScattering(CoherentScattering):
 
     def culculate_energy_change(self, theta, interacted):
         """ Вычислить изменения энергий """
-        energy_change = g4compton.culculate_energy_change(self.particles.energy[interacted], theta)
+        energy = self.particles.energy[interacted]
+        k = energy/mec2
+        k1_cos = k*(1 - cos(theta))
+        energy_change = energy*k1_cos/(1 + k1_cos)
         return energy_change
 
     def apply(self, interacted, materials):
