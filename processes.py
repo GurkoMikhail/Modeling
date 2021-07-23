@@ -189,6 +189,8 @@ class PairProduction(Process):
     pass
 
 
+mec2 = 510998.9461          #eV
+
 processes = {
     'PhotoelectricEffect': PhotoelectricEffect,
     'ComptonScattering': ComptonScattering,
