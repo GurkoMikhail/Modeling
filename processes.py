@@ -1,7 +1,7 @@
 import g4compton
 import g4coherent
 import numpy as np
-from numpy import pi
+from numpy import pi, cos
 
 
 class Interaction:
