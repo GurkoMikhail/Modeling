@@ -1,5 +1,5 @@
 import numpy as np
-from numpy import cos, sin, sqrt, abs, mod, uint8, uint64, inf
+from numpy import cos, sin, sqrt, abs, mod, matmul, uint8, uint64, inf
 
 
 class Space:
@@ -148,9 +148,9 @@ class Subject:
             coordinates = self.convert_to_local_coordinates(coordinates)
             direction = self.convert_to_local_direction(direction)
         inside = self.inside(coordinates)
-        distance = -np.matmul(coordinates, self.normals)
+        distance = -matmul(coordinates, self.normals)
         distance += self.D
-        distance /= np.matmul(direction, self.normals)
+        distance /= matmul(direction, self.normals)
         distance[distance <= 0] = inf
         distance = distance.min(axis=1) + 10**(-8)
         return distance, inside
@@ -161,7 +161,7 @@ class Subject:
         coordinates -= self.coordinates
         if self.rotated:
             coordinates -= self.rotation_center
-            np.matmul(coordinates, self.R, out=coordinates)
+            matmul(coordinates, self.R, out=coordinates)
             coordinates += self.rotation_center
         return coordinates
 
@@ -169,7 +169,7 @@ class Subject:
         """ Преобразовать направление в локальное """
         direction = direction.copy()
         if self.rotated:
-            np.matmul(direction, self.R, out=direction)
+            matmul(direction, self.R, out=direction)
         return direction
 
     def inside(self, coordinates, local=True):
@@ -242,20 +242,17 @@ class Collimator(Subject):
         self.complex = True
 
     def get_collimated(self, coordinates):
-        collimated = np.zeros(coordinates.shape[0], dtype=uint8)
-        corners = np.stack((self.period, self.period/2))
-        coordinates = mod(coordinates[:, :2], self.period)
-        coordinates -= corners[1]
-        corners -= corners[1]
-        abs(coordinates, out=coordinates)
+        corner = self.period/(2*self.hole_diameter)
+        coordinates = mod(coordinates[:, :2], self.period)/self.hole_diameter
+        coordinates = abs(coordinates - corner)
         a = sqrt(3)/4
-        for corner in corners:
-            dcoordinates = coordinates - corner
-            dcoordinates /= self.hole_diameter
-            abs(dcoordinates, out=dcoordinates)
-            dx = dcoordinates[:, 0]
-            dy = dcoordinates[:, 1]
-            collimated += (dy <= a)*(a*dx + dy/4 <= a/2)
+        x = coordinates[:, 0]
+        y = coordinates[:, 1]
+        collimated = (y <= a)*(a*x + y/4 <= a/2)
+        dcoordinates = abs(coordinates[~collimated] - corner)
+        dx = dcoordinates[:, 0]
+        dy = dcoordinates[:, 1]
+        collimated[~collimated] = (dy <= a)*(a*dx + dy/4 <= a/2)
         return collimated.nonzero()[0]
 
     def get_material_indices(self, coordinates, local=True):
