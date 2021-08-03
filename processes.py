@@ -18,6 +18,7 @@ class Interaction:
         self.lacs = lac_funtions['Total']
         for process in self.processes:
             process.lacs = lac_funtions[process.name]
+        self.epsilon = 10**(-8)
         self.rng_choose = np.random.default_rng()
         self.rng_free_path = np.random.default_rng()
 
@@ -26,6 +27,7 @@ class Interaction:
             self.particles.coordinates,
             self.particles.direction
             )
+        distance += self.epsilon
         material, complex_subject = self.space.get_material_of_subject(subject_index)
         total_lac = self.get_total_lac(material, self.particles.energy)
         free_path = self.get_free_path(total_lac)

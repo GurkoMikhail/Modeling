@@ -152,7 +152,7 @@ class Subject:
         distance += self.D
         distance /= matmul(direction, self.normals)
         distance[distance <= 0] = inf
-        distance = distance.min(axis=1) + 10**(-8)
+        distance = distance.min(axis=1)
         return distance, inside
 
     def convert_to_local_coordinates(self, coordinates):
