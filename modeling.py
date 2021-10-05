@@ -5,6 +5,10 @@ from particles import Photons
 from processes import Interaction
 from multiprocessing import Process, Queue
 from time import time
+import os
+os.environ["MKL_NUM_THREADS"] = "1" 
+os.environ["NUMEXPR_NUM_THREADS"] = "1" 
+os.environ["OMP_NUM_THREADS"] = "1" 
 
 
 class Modeling(Process):
@@ -407,7 +411,7 @@ class Source:
 
     def generate_coordinates(self, n):
         p = self.distribution.ravel()
-        indices = np.nonzero(p)[0]
+        indices = p.nonzero()[0]
         p = p[indices]
         indices = self.rng_dist.choice(indices, n, p=p)
         coordinates = self.coordinates_table[indices]
