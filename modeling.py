@@ -5,11 +5,6 @@ from particles import Photons
 from processes import Interaction
 from multiprocessing import Process, Queue
 from time import time
-import os
-os.environ["MKL_NUM_THREADS"] = "1" 
-os.environ["NUMEXPR_NUM_THREADS"] = "1" 
-os.environ["OMP_NUM_THREADS"] = "1" 
-
 
 class Modeling(Process):
     """ 
@@ -277,13 +272,13 @@ class ParticleFlow(Process):
         self.min_energy = 0
         self.daemon = True
 
-    def off_the_solid_angle(self):
+    def off_the_solid_angle(self, direction):
         if self.solid_angle is None:
             return np.array([], dtype=int)
         vector, angle = self.solid_angle
-        cos_alpha = vector[0]*self.particles.direction[:, 0]
-        cos_alpha += vector[1]*self.particles.direction[:, 1]
-        cos_alpha += vector[2]*self.particles.direction[:, 2]
+        cos_alpha = vector[0]*direction[:, 0]
+        cos_alpha += vector[1]*direction[:, 1]
+        cos_alpha += vector[2]*direction[:, 2]
         indices = (cos_alpha <= cos(angle)).nonzero()[0]
         return indices
 
@@ -291,7 +286,7 @@ class ParticleFlow(Process):
         indices = []
         indices.append((particles.energy <= self.min_energy).nonzero()[0])
         indices.append(self.space.outside(particles.coordinates))
-        indices.append(self.off_the_solid_angle())
+        indices.append(self.off_the_solid_angle(particles.direction))
         indices = np.concatenate(indices)
         return indices
 
