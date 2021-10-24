@@ -7,39 +7,10 @@ from modeling import Modeling
 from sources import efg3
 from materials import Materials
 
+
 if __name__ == '__main__':
     modelings = []
     angles = np.linspace(-np.pi/4, np.pi/2, 4)
-    angles = [angles[3], ]
-
-    size = np.asarray((53.3, 60., 53.3))
-    space = Space(size, 0)
-
-    phantom = ae3(
-        coordinates=(1.05, 3.85, 1.05),
-        )
-    space.add_subject(phantom)
-
-    detector = SiemensSymbiaTSeries3_8(
-        coordinates=(0., 0.95, 0.),
-        size=(53.3, 53.3),
-        rotation_angles=(0, 0, -np.pi/2),
-        rotation_center=(0., 0., 0.)
-        )
-    space.add_subject(detector)
-
-    collimator = SiemensSymbiaTSeriesLEHR(
-        coordinates=(detector.coordinates[0], detector.coordinates[1] + 0.5 + 2.4, detector.coordinates[2]),
-        size=detector.size[:2],
-        rotation_angles=detector.rotation_angles,
-        rotation_center=detector.rotation_center
-        )
-    space.add_subject(collimator)
-
-    source = efg3(
-        coordinates=phantom.coordinates,
-        activity=300*10**6,
-        )
 
     materials = {
         'Compounds and mixtures/Air, Dry (near sea level)':         0,
@@ -50,13 +21,40 @@ if __name__ == '__main__':
         'Elemental media/Pb':                                       5,
     }
 
+    space = Space(
+        size=(53.3, 51.2, 60.),
+        material=0
+        )
+
+    phantom = ae3(
+        coordinates=((space.size[0] - 51.2)/2, (space.size[1] - 51.2)/2, 3.85),
+        )
+    space.add_subject(phantom)
+
+    detector = SiemensSymbiaTSeries3_8(
+        coordinates=((space.size[0] - 53.3)/2, (space.size[1] - 38.7)/2, 0),
+        size=(53.3, 38.7)
+        )
+    space.add_subject(detector)
+
+    collimator = SiemensSymbiaTSeriesLEHR(
+        coordinates=(detector.coordinates[0], detector.coordinates[1], detector.size[2] + 0.5),
+        size=detector.size[:2]
+        )
+    space.add_subject(collimator)
+
+    source = efg3(
+        coordinates=phantom.coordinates,
+        activity=300*10**6,
+        )
+
     materials = Materials(materials, max_energy=source.energy)
 
     materials.table = np.array([7, 7, 7, 10, 32, 82])
 
     for angle in angles:
-        phantom.rotate((angle, 0., 0.))
-        source.rotate((angle, 0., 0.))
+        phantom.rotate((0., angle, 0.))
+        source.rotate((0., angle, 0.))
         
         modeling = Modeling(
             space,
