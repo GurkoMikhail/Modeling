@@ -18,12 +18,12 @@ class Interaction:
         self.lacs = lac_funtions['Total']
         for process in self.processes:
             process.lacs = lac_funtions[process.name]
-        self.epsilon = 10**(-8)
+        self.epsilon = 10**(-4)
         self.rng_choose = np.random.default_rng()
         self.rng_free_path = np.random.default_rng()
 
-    def casting(self):
-        subject_index, distance = self.space.ray_casting(
+    def processing(self):
+        subject_index, distance = self.space.path_processing(
             self.particles.coordinates,
             self.particles.direction
             )

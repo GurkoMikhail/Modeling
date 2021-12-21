@@ -10,18 +10,19 @@ class Space:
         self.size = np.asarray(size)    #cm
         self.material = material
         self.subjects = subjects
+        self.ray_method = 'ray_casting'
         self.args = ['']
 
         for arg in self.args:
             if arg in kwds:
                 setattr(self, arg, kwds[arg])
-
-    def ray_casting(self, coordinates, direction):
-        """ Алгоритм бросания лучей для определения объекта местонахождения и длины пути до столкновения """
+                
+    def path_processing(self, coordinates, direction):
+        """ Алгоритм определения объекта местонахождения и длины пути частицы """
         path_length = np.full((coordinates.shape[0], ), inf)
         current_subject = np.zeros_like(path_length, dtype=uint8)
         for subject_index, subject in enumerate(self.subjects, 1):
-            distance, inside_subject = subject.path_casting(coordinates, direction)
+            distance, inside_subject = getattr(subject, self.ray_method)(coordinates, direction)
             current_subject[inside_subject] = subject_index
             intersectional = (path_length > distance).nonzero()[0]
             path_length[intersectional] = distance[intersectional]
@@ -143,7 +144,18 @@ class Subject:
         D = self.primitive_size.ravel(order='F')
         self.normals, self.D = normals, D
 
-    def path_casting(self, coordinates, direction, local=False):
+    def ray_marching(self, coordinates, direction, local=False):
+        if not local:
+            coordinates = self.convert_to_local_coordinates(coordinates)
+            direction = self.convert_to_local_direction(direction)
+        q = abs(coordinates - self.primitive_size[:, 0]) - (self.primitive_size[:, 1] - self.primitive_size[:, 0])
+        maxXYZ = q.max(axis=1)
+        lengthq = np.linalg.norm(np.where(q > 0, q, 0.), axis=1)
+        distance = lengthq + np.where(maxXYZ < 0., maxXYZ, 0.)
+        inside = distance < 0
+        return abs(distance), inside
+
+    def ray_casting(self, coordinates, direction, local=False):
         if not local:
             coordinates = self.convert_to_local_coordinates(coordinates)
             direction = self.convert_to_local_direction(direction)
@@ -151,6 +163,7 @@ class Subject:
         distance = -matmul(coordinates, self.normals)
         distance += self.D
         distance /= matmul(direction, self.normals)
+        distance[inside] *= -1
         distance[distance <= 0] = inf
         distance = distance.min(axis=1)
         return distance, inside
@@ -178,6 +191,16 @@ class Subject:
             coordinates = self.convert_to_local_coordinates(coordinates)
         inside = (coordinates <= self.primitive_size[:, 1])*(coordinates >= self.primitive_size[:, 0])
         indices = inside.all(axis=1).nonzero()[0]
+        return indices
+        
+    def outside(self, coordinates, local=True):
+        """ Список попавших внутрь """
+        if not local:
+            coordinates = self.convert_to_local_coordinates(coordinates)
+        primitive_size0 = self.primitive_size[:, 0].reshape(1, 3, 1)
+        primitive_size1 = self.primitive_size[:, 1].reshape(1, 3, 1)
+        outside = (coordinates > primitive_size1) + (coordinates < primitive_size0)
+        indices = outside.any(axis=1).nonzero()
         return indices
 
     def get_material_indices(self, coordinates, local=True):
