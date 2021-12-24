@@ -75,6 +75,7 @@ class Source(SharedProcess):
         return self.activity()*self.half_life/log(2)
 
     def set_state(self, timer, rng_state=None):
+        self.timer = timer
         if rng_state is None:
             return
         self.rng.bit_generator.state['state'] = rng_state
