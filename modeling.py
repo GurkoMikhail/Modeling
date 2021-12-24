@@ -56,12 +56,7 @@ class Modeling(Process):
                 setattr(self, arg, kwds[arg])
 
     def generate_flows(self):
-        last_time = self.check_progress_in_file()
-        start_time = max([self.start_time, last_time])
-        self.source.set_timer(start_time)
-        self.particles_number //= self.flow_number
-        self.source.initial_activity //= self.flow_number
-        queue = Queue(maxsize=self.flow_number)
+        queue = Queue(maxsize=1)
         flows = []
         for _ in range(self.flow_number):
             flow = ParticleFlow(
@@ -69,16 +64,22 @@ class Modeling(Process):
                 space=self.space,
                 materials=self.materials,
                 stop_time=self.stop_time,
-                particles_number=self.particles_number,
+                particles_number=self.particles_number//self.flow_number,
                 queue=queue,
                 solid_angle=self.solid_angle
                 )
             flows.append(flow)
         return flows, queue
 
+    def start(self):
+        if self.source._popen is None:
+            self.source.start()
+        return super().start()
+
     def run(self):
         print(f'{self.name} started')
-        self.source.set_timer(self.start_time)
+        source_state = self.check_progress_in_file()
+        self.source.set_state(*source_state)
         self.save_modeling_parameters()
         flows, queue = self.generate_flows()
         for flow in flows:
@@ -106,13 +107,15 @@ class Modeling(Process):
             file = File(f'Output data/{self.file_name}', 'r')
             last_time = file['Source timer']
             last_time = float(np.array(last_time))
+            state = None
             file.close()
         except Exception:
             print(f'\tНе удалось проверить прогресс')
             last_time = 0
+            state = None
         finally:
             print(f'\tSource timer: {last_time}')
-            return last_time
+            return last_time, state
 
     def update_modeling_data(self, step_data):
         data = self.modeling_data['Interactions data']
@@ -246,9 +249,9 @@ class Modeling(Process):
                 for parameter_name, value in subject.__dict__.items():
                     subjectParameters.create_dataset(parameter_name, data=value)
             sourceParameters = group.create_group('Source')
-            for parameter_name, value in self.source.__dict__.items():
-                if parameter_name not in ('particles_emitted', 'timer', 'coordinates_table', 'size', 'rng_dist', 'rng_time', 'rng_dir', 'rng_ddist'):
-                    sourceParameters.create_dataset(parameter_name, data=value)
+            for parameter_name in dir(self.source):
+                if parameter_name in ('distribution', 'coordinates', 'energy', 'voxel_size', 'initial_activity', 'radiation_type', 'half_life'):
+                    sourceParameters.create_dataset(parameter_name, data=getattr(self.source, parameter_name))
             if self.subject is not None:
                 subject = self.subject.__class__.__name__
                 group.create_dataset('Subject', data=subject)
@@ -299,7 +302,7 @@ class ParticleFlow(Process):
         self.queue.put(data)
 
     def next_step(self, particles, interaction):
-        interaction_data = interaction.casting()
+        interaction_data = interaction.processing()
         self.send_data(interaction_data)
         invalid_particles = self.invalid_particles(particles)
         invalid_particles_number = invalid_particles.size
@@ -321,125 +324,4 @@ class ParticleFlow(Process):
         self.queue.put('Finish')
         print(f'\t{self.name} finished\n'
             + f'\t\tTime passed: {time() - start} seconds')
-
-
-class Source:
-    """
-    Класс источника частиц
-
-    [coordinates = (x, y, z)] = cm
-
-    [activity] = Bq
-
-    [distribution] = float[:,:,:]
-
-    [voxel_size] = cm
-
-    [energy] = eV
-
-    [half_life] = sec
-    """
-
-    def __init__(self, coordinates, activity, distribution, voxel_size=0.4, radiation_type='Gamma', energy=140.*10**3, half_life=6*60*60, rotation_angles=None, rotation_center=None):
-        self.coordinates = np.asarray(coordinates)
-        self.initial_activity = np.asarray(activity)
-        self.distribution = np.asarray(distribution)
-        self.distribution /= np.sum(self.distribution)
-        self.voxel_size = voxel_size
-        self.size = np.asarray(self.distribution.shape)*self.voxel_size
-        self.radiation_type = radiation_type
-        self.energy = energy
-        self.half_life = half_life
-        self.timer = 0.
-        self.rotated = False
-        self._generate_coordinates_table()
-        if rotation_angles is not None:
-            self.rotate(rotation_angles, rotation_center)
-        self._initialized = False
-
-    def _initialize(self):
-        self.rng_dist = np.random.default_rng()
-        self.rng_ddist = np.random.default_rng()
-        self.rng_time = np.random.default_rng()
-        self.rng_dir = np.random.default_rng()
-        self._initialized = True
-
-    def rotate(self, rotation_angles, rotation_center=None):
-        self.rotated = True
-        self.rotation_angles = np.asarray(rotation_angles)
-        if rotation_center is None:
-            rotation_center = np.asarray(self.size/2)
-        self.rotation_center = rotation_center
-        alpha, beta, gamma = -self.rotation_angles
-        self.R = np.asarray([
-            [cos(alpha)*cos(beta),  cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma),    cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma) ],
-            [sin(alpha)*cos(beta),  sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma),    sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma) ],
-            [-sin(beta),            cos(beta)*sin(gamma),                                       cos(beta)*cos(gamma)                                    ]
-        ])
-        self.R = self.R.T
-        self._generate_coordinates_table()
-
-    def _generate_coordinates_table(self):
-        coordinates_table = []
-        for x in np.linspace(0, self.size[0], self.distribution.shape[0]):
-            for y in np.linspace(0, self.size[1], self.distribution.shape[1]):
-                for z in np.linspace(0, self.size[2], self.distribution.shape[2]):
-                    coordinates_table.append([x, y, z])
-        coordinates_table = np.asarray(coordinates_table)
-        if self.rotated:
-            coordinates_table -= self.rotation_center
-            np.matmul(coordinates_table, self.R, out=coordinates_table)
-            coordinates_table += self.rotation_center
-        coordinates_table += self.coordinates
-        self.coordinates_table = coordinates_table
-
-    @property
-    def activity(self):
-        return self.initial_activity*2**(-self.timer/self.half_life)
-    
-    @property
-    def nuclei_number(self):
-        return self.activity*self.half_life/log(2)
-
-    def set_timer(self, timer):
-        self.timer = float(timer)
-
-    def generate_coordinates(self, n):
-        p = self.distribution.ravel()
-        indices = p.nonzero()[0]
-        p = p[indices]
-        indices = self.rng_dist.choice(indices, n, p=p)
-        coordinates = self.coordinates_table[indices]
-        dcoordinates = self.rng_ddist.uniform(0, self.voxel_size, coordinates.shape)
-        coordinates += dcoordinates
-        return coordinates
-
-    def generate_emission_time(self, n):
-        dt = log((self.nuclei_number + n)/self.nuclei_number)*self.half_life/log(2)
-        a = 2**(-self.timer/self.half_life)
-        b = 2**(-(self.timer + dt)/self.half_life)
-        alpha = self.rng_time.uniform(b, a, n)
-        emission_time = -log(alpha)*self.half_life/log(2)
-        return emission_time, dt
-
-    def generate_directions(self, n):
-        a1 = self.rng_dir.random(n)
-        a2 = self.rng_dir.random(n)
-        cos_alpha = 1 - 2*a1
-        sq = sqrt(1 - cos_alpha**2)
-        cos_beta = sq*cos(2*pi*a2)
-        cos_gamma = sq*sin(2*pi*a2)
-        directions = np.column_stack((cos_alpha, cos_beta, cos_gamma))
-        return directions
-
-    def generate_particles(self, n):
-        if not self._initialized:
-            self._initialize()
-        energies = np.full(n, self.energy)
-        directions = self.generate_directions(n)
-        coordinates = self.generate_coordinates(n)
-        emission_time, dt = self.generate_emission_time(n)
-        self.timer += dt
-        particles = Photons(energies, directions, coordinates, emission_time)
-        return particles
 
