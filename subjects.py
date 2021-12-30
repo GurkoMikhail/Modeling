@@ -11,7 +11,7 @@ class Space:
         self.material = material
         self.subjects = subjects
         self.ray_method = 'ray_casting'
-        self.args = ['']
+        self.args = ['ray_method']
 
         for arg in self.args:
             if arg in kwds:
