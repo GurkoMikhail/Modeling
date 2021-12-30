@@ -1,10 +1,11 @@
 from h5py import File
 import numpy as np
-from numpy import pi, sqrt, cos, sin, log
+from numpy import cos
 from particles import Photons
 from processes import Interaction
 from multiprocessing import Process, Queue
 from time import time
+
 
 class Modeling(Process):
     """ 
@@ -70,11 +71,6 @@ class Modeling(Process):
                 )
             flows.append(flow)
         return flows, queue
-
-    def start(self):
-        if self.source._popen is None:
-            self.source.start()
-        return super().start()
 
     def run(self):
         print(f'{self.name} started')
