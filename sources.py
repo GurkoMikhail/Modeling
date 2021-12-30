@@ -1,10 +1,9 @@
 import numpy as np
 from numpy import load, cos, sin, log, sqrt, pi
 from particles import Photons
-from sharedProcess import SharedProcess
 
 
-class Source(SharedProcess):
+class Source:
     """
     Класс источника частиц
 
@@ -22,7 +21,6 @@ class Source(SharedProcess):
     """
 
     def __init__(self, coordinates, activity, distribution, voxel_size=0.4, radiation_type='Gamma', energy=140.*10**3, half_life=6*60*60, rotation_angles=None, rotation_center=None):
-        super().__init__(daemon=True)
         self.coordinates = np.asarray(coordinates)
         self.initial_activity = np.asarray(activity)
         self.distribution = np.asarray(distribution)
@@ -68,11 +66,13 @@ class Source(SharedProcess):
         coordinates_table += self.coordinates
         self.coordinates_table = coordinates_table
 
+    @property
     def activity(self):
         return self.initial_activity*2**(-self.timer/self.half_life)
     
+    @property
     def nuclei_number(self):
-        return self.activity()*self.half_life/log(2)
+        return self.activity*self.half_life/log(2)
 
     def set_state(self, timer, rng_state=None):
         self.timer = timer
@@ -91,7 +91,7 @@ class Source(SharedProcess):
         return coordinates
 
     def generate_emission_time(self, n):
-        dt = log((self.nuclei_number() + n)/self.nuclei_number())*self.half_life/log(2)
+        dt = log((self.nuclei_number + n)/self.nuclei_number)*self.half_life/log(2)
         a = 2**(-self.timer/self.half_life)
         b = 2**(-(self.timer + dt)/self.half_life)
         alpha = self.rng.uniform(b, a, n)
