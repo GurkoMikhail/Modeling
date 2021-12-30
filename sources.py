@@ -44,27 +44,22 @@ class Source:
             rotation_center = np.asarray(self.size/2)
         self.rotation_center = rotation_center
         alpha, beta, gamma = -self.rotation_angles
-        self._R = np.asarray([
+        R = np.asarray([
             [cos(alpha)*cos(beta),  cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma),    cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma) ],
             [sin(alpha)*cos(beta),  sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma),    sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma) ],
             [-sin(beta),            cos(beta)*sin(gamma),                                       cos(beta)*cos(gamma)                                    ]
         ])
-        self._R = self._R.T
+        self.R = R.T
         self._generate_coordinates_table()
 
     def _generate_coordinates_table(self):
-        coordinates_table = []
-        for x in np.linspace(0, self.size[0], self.distribution.shape[0]):
-            for y in np.linspace(0, self.size[1], self.distribution.shape[1]):
-                for z in np.linspace(0, self.size[2], self.distribution.shape[2]):
-                    coordinates_table.append([x, y, z])
-        coordinates_table = np.asarray(coordinates_table)
-        if self._rotated:
-            coordinates_table -= self.rotation_center
-            np.matmul(coordinates_table, self._R, out=coordinates_table)
-            coordinates_table += self.rotation_center
-        coordinates_table += self.coordinates
-        self.coordinates_table = coordinates_table
+        xs, ys, zs = np.meshgrid(
+            np.linspace(0, self.size[0], self.distribution.shape[0]),
+            np.linspace(0, self.size[1], self.distribution.shape[1]),
+            np.linspace(0, self.size[2], self.distribution.shape[2]),
+            indexing = 'ij'
+        )
+        self.coordinates_table = np.stack((xs, ys, zs), axis=3).reshape(-1, 3)
 
     @property
     def activity(self):
@@ -88,6 +83,11 @@ class Source:
         coordinates = self.coordinates_table[indices]
         dcoordinates = self.rng.uniform(0, self.voxel_size, coordinates.shape)
         coordinates += dcoordinates
+        if self._rotated:
+            coordinates -= self.rotation_center
+            np.matmul(coordinates, self.R, out=coordinates)
+            coordinates += self.rotation_center
+        coordinates += self.coordinates
         return coordinates
 
     def generate_emission_time(self, n):
@@ -159,7 +159,25 @@ class Тс99m_MIBI(Source):
         super().__init__(coordinates, activity, distribution, voxel_size, radiation_type, energy, half_life, rotation_angles, rotation_center)
 
 
-class efg3(Тс99m_MIBI):
+class SourcePhantom(Тс99m_MIBI):
+    """
+    Источник 99mТс-MIBI
+
+    [coordinates = (x, y, z)] = cm
+
+    [activity] = Bq
+
+    [phantom_name] = string
+
+    [voxel_size] = cm
+    """
+
+    def __init__(self, coordinates, activity, phantom_name, voxel_size, rotation_angles=None, rotation_center=None):
+        distribution = load(f'Phantoms/{phantom_name}.npy')
+        super().__init__(coordinates, activity, distribution, voxel_size, rotation_angles=rotation_angles, rotation_center=rotation_center)
+
+
+class efg3(SourcePhantom):
     """
     Источник efg3
 
@@ -169,7 +187,7 @@ class efg3(Тс99m_MIBI):
     """
 
     def __init__(self, coordinates, activity, rotation_angles=None, rotation_center=None):
-        distribution = load('Phantoms/efg3.npy')
+        phantom_name = 'efg3'
         voxel_size = 0.4
-        super().__init__(coordinates, activity, distribution, voxel_size, rotation_angles, rotation_center)
+        super().__init__(coordinates, activity, phantom_name, voxel_size, rotation_angles, rotation_center)
 
