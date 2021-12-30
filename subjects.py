@@ -231,7 +231,7 @@ class Phantom(Subject):
     def get_material_indices(self, coordinates, local=True):
         if not local:
             coordinates = self.convert_to_local_coordinates(coordinates)
-        coordinates = np.floor_divide(coordinates, self.voxel_size, dtype=int)
+        coordinates = (coordinates/self.voxel_size).astype(int)
         material_indices = self.material[(coordinates[:, 0], coordinates[:, 1], coordinates[:, 2])]
         return material_indices
 
