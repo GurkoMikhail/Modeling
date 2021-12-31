@@ -76,27 +76,31 @@ class Modeling(Process):
         print(f'{self.name} started')
         source_state = self.check_progress_in_file()
         self.source.set_state(*source_state)
-        self.save_modeling_parameters()
-        flows, queue = self.generate_flows()
-        for flow in flows:
-            flow.start()
-        start_time = time()
-        finished_flows = 0
-        for step_data in iter(queue.get, None):
-            finish_time = time() - start_time
-            if step_data == 'Finish':
-                finished_flows += 1
-                if finished_flows == self.flow_number:
+        print(f'\tSource timer: {self.source.timer}')
+        if self.source.timer < self.stop_time:
+            self.save_modeling_parameters()
+            flows, queue = self.generate_flows()
+            for flow in flows:
+                flow.start()
+            start_time = time()
+            finished_flows = 0
+            for step_data in iter(queue.get, None):
+                finish_time = time() - start_time
+                if step_data == 'Finish':
+                    finished_flows += 1
+                    if finished_flows == self.flow_number:
+                        self.save_modeling_data()
+                        print(f'\tReal time passed: {finish_time} seconds')
+                        print(f'{self.name} finished!')
+                        break
+                    continue
+                self.update_modeling_data(step_data)
+                if self.modeling_data['Events number'] >= self.iteraction_buffer:
                     self.save_modeling_data()
                     print(f'\tReal time passed: {finish_time} seconds')
-                    print(f'{self.name} ended!')
-                    break
-                continue
-            self.update_modeling_data(step_data)
-            if self.modeling_data['Events number'] >= self.iteraction_buffer:
-                self.save_modeling_data()
-                print(f'\tReal time passed: {finish_time} seconds')
-                start_time = time()
+                    start_time = time()
+        else:
+            print(f'{self.name} already finished!')
 
     def check_progress_in_file(self):
         try:
@@ -105,12 +109,11 @@ class Modeling(Process):
             last_time = float(np.array(last_time))
             state = None
             file.close()
+            print(f'\tПрогресс восстановлен')
         except Exception:
-            print(f'\tНе удалось проверить прогресс')
-            last_time = 0
+            last_time = None
             state = None
         finally:
-            print(f'\tSource timer: {last_time}')
             return last_time, state
 
     def update_modeling_data(self, step_data):
@@ -312,9 +315,9 @@ class ParticleFlow(Process):
     def run(self):
         """ Реализация работы процесса """
         print(f'\t{self.name} started')
+        start = time()
         particles = self.source.generate_particles(self.particles_number)
         interaction = Interaction(particles, self.space, self.materials)
-        start = time()
         while particles.count > 0:
                 self.next_step(particles, interaction)
         self.queue.put('Finish')
