@@ -1,4 +1,5 @@
 from h5py import File
+from pathlib import Path
 import numpy as np
 from numpy import cos
 from particles import Photons
@@ -56,6 +57,10 @@ class Modeling(Process):
             if arg in kwds:
                 setattr(self, arg, kwds[arg])
 
+    @property
+    def filePath(self):
+        return f'Output data/{self.file_name}'
+
     def generate_flows(self):
         queue = Queue(maxsize=1)
         flows = []
@@ -104,7 +109,7 @@ class Modeling(Process):
 
     def check_progress_in_file(self):
         try:
-            file = File(f'Output data/{self.file_name}', 'r')
+            file = File(self.filePath, 'r')
             last_time = file['Source timer']
             last_time = float(np.array(last_time))
             state = None
@@ -166,7 +171,7 @@ class Modeling(Process):
         data = self.modeling_data['Interactions data']
         events_number = self.modeling_data['Events number']
         try:
-            file = File(f'Output data/{self.file_name}', 'r+')
+            file = File(self.filePath, 'r+')
         except Exception:
             print(f'Не удалось сохранить {self.name}!')
         else:
@@ -228,7 +233,8 @@ class Modeling(Process):
 
     def save_modeling_parameters(self):
         try:
-            file = File(f'Output data/{self.file_name}', 'x')
+            Path(self.filePath).parent.mkdir(parents=True, exist_ok=True)
+            file = File(self.filePath, 'x')
             group = file.create_group('Modeling parameters')
         except Exception:
             print(f'\tНе удалось записать параметры {self.name}')
