@@ -1,0 +1,82 @@
+import numpy as np
+from subjects import Space
+from phantoms import ae3cut
+from collimators import SiemensSymbiaTSeriesLEHR
+from detectors import SiemensSymbiaTSeries3_8
+from modeling import Modeling
+from modelingManagers import SourceManager
+from materials import Materials
+
+import os
+os.environ["MKL_NUM_THREADS"] = "1" 
+os.environ["NUMEXPR_NUM_THREADS"] = "1" 
+os.environ["OMP_NUM_THREADS"] = "1"
+
+
+
+if __name__ == '__main__':
+    angles = np.linspace(-np.pi/4, 3*np.pi/4, 32)
+    projection_time = 15
+    pause_time = 1.
+
+    materials = {
+        'Compounds and mixtures/Air, Dry (near sea level)':         0,
+        'Compounds and mixtures/Lung':                              1,
+        'Compounds and mixtures/Tissue, Soft (ICRU-44)':            2,
+        'Compounds and mixtures/B-100 Bone-Equivalent Plastic':     3,
+        'Compounds and mixtures/Sodium Iodide':                     4,
+        'Elemental media/Pb':                                       5,
+    }
+
+    space = Space(
+        size=(51.2, 40., 60.),
+        material=0
+        )
+
+    detector = SiemensSymbiaTSeries3_8(
+        coordinates=(0., 0., 0),
+        size=space.size[:2]
+        )
+    space.add_subject(detector)
+
+    collimator = SiemensSymbiaTSeriesLEHR(
+        coordinates=(detector.coordinates[0], detector.coordinates[1], detector.size[2] + 0.5),
+        size=detector.size[:2]
+        )
+    space.add_subject(collimator)
+
+    phantom = ae3cut(
+        coordinates=(collimator.coordinates[0], collimator.coordinates[1], collimator.size[2]),
+        )
+    space.add_subject(phantom)
+
+    source = SourceManager().efg3cut(
+        coordinates=phantom.coordinates,
+        activity=300*10**6,
+        )
+
+    materials = Materials(materials, max_energy=source.energy)
+
+    materials.table = np.array([7, 7, 7, 10, 32, 82])
+
+    for angle in angles:
+        phantom.rotate((0., angle, 0.))
+        source.rotate((0., angle, 0.))
+        
+        modeling = Modeling(
+            space,
+            source,
+            materials,
+            stop_time=source.timer + projection_time,
+            particles_number=10**8,
+            flow_number=8,
+            file_name=f'efg3cut/{round(np.rad2deg(angle), 1)} deg.hdf',
+            iteraction_buffer=10**4,
+            name=f'{round(np.rad2deg(angle), 1)} deg',
+            subject=detector
+            )
+        
+        modeling.start()
+        modeling.join()
+        source.set_state(source.timer + pause_time)
+
