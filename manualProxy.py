@@ -25,6 +25,7 @@ def MakeProxy(target):
     exposed = dir(target)
     # exposed += ('__setattr__', '__delattr__')
     ProxyType._exposed_ = tuple(exposed)
+    ProxyType._isauto = False
 
     return ProxyType
 
