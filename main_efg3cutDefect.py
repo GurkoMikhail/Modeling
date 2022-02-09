@@ -70,7 +70,7 @@ if __name__ == '__main__':
             stop_time=source.timer + projection_time,
             particles_number=10**8,
             flow_number=8,
-            file_name=f'efg3cut/{round(np.rad2deg(angle), 1)} deg.hdf',
+            file_name=f'efg3cutDefect/{round(np.rad2deg(angle), 1)} deg.hdf',
             iteraction_buffer=10**4,
             name=f'{round(np.rad2deg(angle), 1)} deg',
             subject=detector
