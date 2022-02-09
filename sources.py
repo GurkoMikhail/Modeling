@@ -191,4 +191,34 @@ class efg3(SourcePhantom):
         phantom_name = 'efg3'
         voxel_size = 0.4
         super().__init__(coordinates, activity, phantom_name, voxel_size, rotation_angles, rotation_center)
+        
+
+class efg3cut(SourcePhantom):
+    """
+    Источник efg3cut
+
+    [coordinates = (x, y, z)] = cm
+
+    [activity] = Bq
+    """
+
+    def __init__(self, coordinates, activity, rotation_angles=None, rotation_center=None):
+        phantom_name = 'efg3cut'
+        voxel_size = 0.4
+        super().__init__(coordinates, activity, phantom_name, voxel_size, rotation_angles, rotation_center)
+
+
+class efg3cutDefect(SourcePhantom):
+    """
+    Источник efg3cutDefect
+
+    [coordinates = (x, y, z)] = cm
+
+    [activity] = Bq
+    """
+
+    def __init__(self, coordinates, activity, rotation_angles=None, rotation_center=None):
+        phantom_name = 'efg3cutDefect'
+        voxel_size = 0.4
+        super().__init__(coordinates, activity, phantom_name, voxel_size, rotation_angles, rotation_center)
 
