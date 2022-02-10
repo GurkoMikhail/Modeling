@@ -37,23 +37,24 @@ if __name__ == '__main__':
         coordinates=(0., 0., 0),
         size=space.size[:2]
         )
-    space.add_subject(detector)
 
     collimator = SiemensSymbiaTSeriesLEHR(
         coordinates=(detector.coordinates[0], detector.coordinates[1], detector.size[2] + 0.5),
         size=detector.size[:2]
         )
-    space.add_subject(collimator)
 
     phantom = ae3cut(
         coordinates=(collimator.coordinates[0], collimator.coordinates[1], collimator.size[2]),
         )
-    space.add_subject(phantom)
 
     source = SourceManager().efg3cut(
         coordinates=phantom.coordinates,
         activity=300*10**6,
         )
+
+    space.add_subject(phantom)    
+    space.add_subject(detector)
+    space.add_subject(collimator)
 
     materials = Materials(materials, max_energy=source.energy)
 
