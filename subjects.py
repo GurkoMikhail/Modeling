@@ -258,23 +258,20 @@ class Collimator(Subject):
         self.hole_diameter = hole_diameter
         self.septa = septa
         self.space_material = space_material
-        y_period = sqrt(3)/2*self.hole_diameter + self.septa
-        x_period = sqrt((2*y_period)**2 - y_period**2)
+        x_period = self.hole_diameter + self.septa
+        y_period = sqrt(3)*x_period
         self.period = np.stack((x_period, y_period))
         self.complex = True
 
     def get_collimated(self, coordinates):
-        corner = self.period/(2*self.hole_diameter)
-        coordinates = mod(coordinates[:, :2], self.period)/self.hole_diameter
-        coordinates = abs(coordinates - corner)
         a = sqrt(3)/4
-        x = coordinates[:, 0]
-        y = coordinates[:, 1]
-        collimated = (y <= a)*(a*x + y/4 <= a/2)
-        dcoordinates = abs(coordinates[~collimated] - corner)
-        dx = dcoordinates[:, 0]
-        dy = dcoordinates[:, 1]
-        collimated[~collimated] = (dy <= a)*(a*dx + dy/4 <= a/2)
+        d = self.hole_diameter*2/sqrt(3)
+        corner = self.period/2
+        coordinates = mod(coordinates[:, :2], self.period)
+        coordinates = abs(coordinates - corner)
+        collimated = (coordinates[:, 0] <= a*d)*(a*coordinates[:, 1] + coordinates[:, 0]/4 <= a*d/2)
+        coordinates = abs(coordinates[~collimated] - corner)
+        collimated[~collimated] = (coordinates[:, 0] <= a*d)*(a*coordinates[:, 1] + coordinates[:, 0]/4 <= a*d/2)
         return collimated.nonzero()[0]
 
     def get_material_indices(self, coordinates, local=True):
@@ -295,3 +292,18 @@ subjects_list = {
     'Detector': Detector
     }
 
+
+if __name__ == '__main__':
+    collimator = Collimator((0, 0, 0), (1., 1., 2.), 3, 0.111, 0.016, 0)
+    xs, ys = np.meshgrid(
+        np.linspace(0, collimator.size[0], 10**3),
+        np.linspace(0, collimator.size[1], 10**3),
+        indexing = 'ij'
+    )
+    xs = xs.ravel()
+    ys = ys.ravel()
+    zs = xs*0
+    coordinates = np.stack((xs, ys, zs), axis=1).reshape(-1, 3)
+    collimated = collimator.get_collimated(coordinates)
+    image = collimated.reshape(10**3, 10**3)
+    np.save('C:/Users/gurko/Projects Python/Analysing/Numpy data/testCollimator.npy', image)
