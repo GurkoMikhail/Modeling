@@ -292,18 +292,3 @@ subjects_list = {
     'Detector': Detector
     }
 
-
-if __name__ == '__main__':
-    collimator = Collimator((0, 0, 0), (1., 1., 2.), 3, 0.111, 0.016, 0)
-    xs, ys = np.meshgrid(
-        np.linspace(0, collimator.size[0], 10**3),
-        np.linspace(0, collimator.size[1], 10**3),
-        indexing = 'ij'
-    )
-    xs = xs.ravel()
-    ys = ys.ravel()
-    zs = xs*0
-    coordinates = np.stack((xs, ys, zs), axis=1).reshape(-1, 3)
-    collimated = collimator.get_collimated(coordinates)
-    image = collimated.reshape(10**3, 10**3)
-    np.save('C:/Users/gurko/Projects Python/Analysing/Numpy data/testCollimator.npy', image)
