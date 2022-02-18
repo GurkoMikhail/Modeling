@@ -254,7 +254,7 @@ class Modeling(Process):
                 for parameter_name, value in subject.__dict__.items():
                     subjectParameters.create_dataset(parameter_name, data=value)
             sourceParameters = group.create_group('Source')
-            for parameter_name in ('distribution', 'coordinates', 'energy', 'voxel_size', 'initial_activity', 'radiation_type', 'half_life'):
+            for parameter_name in ('distribution', 'coordinates', 'energy', 'voxel_size', 'initial_activity', 'radiation_type', 'half_life', 'R'):
                 sourceParameters.create_dataset(parameter_name, data=getattr(self.source, parameter_name))
             if self.subject is not None:
                 subject = self.subject.__class__.__name__
