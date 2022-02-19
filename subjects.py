@@ -11,7 +11,11 @@ class Space:
         self.material = material
         self.subjects = subjects
         self.ray_method = 'ray_casting'
-        self.args = ['ray_method']
+        self.epsilon = 10**(-4)
+        self.args = [
+            'ray_method',
+            'epsilon'
+        ]
 
         for arg in self.args:
             if arg in kwds:
@@ -26,6 +30,7 @@ class Space:
             current_subject[inside_subject] = subject_index
             intersectional = (path_length > distance).nonzero()[0]
             path_length[intersectional] = distance[intersectional]
+        path_length += self.epsilon
         return current_subject, path_length
 
     def get_material_of_subject(self, subject_index):
