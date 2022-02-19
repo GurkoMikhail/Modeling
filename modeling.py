@@ -4,7 +4,7 @@ import numpy as np
 from numpy import cos
 from particles import Photons
 from processes import Interaction
-from multiprocessing import Process, Queue
+from multiprocessing import Process, JoinableQueue
 from time import time
 
 
@@ -62,7 +62,7 @@ class Modeling(Process):
         return f'Output data/{self.file_name}'
 
     def generate_flows(self):
-        queue = Queue(maxsize=1)
+        queue = JoinableQueue(maxsize=1)
         flows = []
         for _ in range(self.flow_number):
             flow = ParticleFlow(
@@ -104,6 +104,7 @@ class Modeling(Process):
                     self.save_modeling_data()
                     print(f'\tReal time passed: {finish_time} seconds')
                     start_time = time()
+                queue.task_done()
         else:
             print(f'{self.name} already finished!')
 
@@ -304,6 +305,7 @@ class ParticleFlow(Process):
             'Step': self.step
             }
         self.queue.put(data)
+        self.queue.join()
 
     def next_step(self, particles, interaction):
         interaction_data = interaction.processing()
