@@ -7,14 +7,8 @@ from modeling import Modeling
 from modelingManagers import SourceManager
 from materials import Materials
 
-import os
-os.environ["MKL_NUM_THREADS"] = "1" 
-os.environ["NUMEXPR_NUM_THREADS"] = "1" 
-os.environ["OMP_NUM_THREADS"] = "1"
 
-
-
-if __name__ == '__main__':
+def main():
     angles = np.linspace(-np.pi/4, 3*np.pi/4, 32)
     projection_time = 15
     pause_time = 1.
@@ -73,11 +67,14 @@ if __name__ == '__main__':
             flow_number=8,
             file_name=f'efg3cut/{round(np.rad2deg(angle), 1)} deg.hdf',
             iteraction_buffer=10**4,
-            name=f'{round(np.rad2deg(angle), 1)} deg',
             subject=detector
             )
         
         modeling.start()
         modeling.join()
         source.set_state(source.timer + pause_time)
+
+
+if __name__ == '__main__':
+    main()
 
