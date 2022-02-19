@@ -6,6 +6,12 @@ from particles import Photons
 from processes import Interaction
 from multiprocessing import Process, JoinableQueue
 from time import time
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 
 class Modeling(Process):
