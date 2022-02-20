@@ -32,7 +32,7 @@ class Source:
         self.half_life = half_life
         self.timer = 0.
         self._rotated = False
-        self._generate_coordinates_table()
+        self._generate_emission_table()
         if rotation_angles is not None:
             self.rotate(rotation_angles, rotation_center)
         self.rng = np.random.default_rng()
@@ -50,16 +50,19 @@ class Source:
             [-sin(beta),            cos(beta)*sin(gamma),                                       cos(beta)*cos(gamma)                                    ]
         ])
         self.R = R.T
-        self._generate_coordinates_table()
+        self._generate_emission_table()
 
-    def _generate_coordinates_table(self):
+    def _generate_emission_table(self):
         xs, ys, zs = np.meshgrid(
-            np.linspace(0, self.size[0], self.distribution.shape[0]),
-            np.linspace(0, self.size[1], self.distribution.shape[1]),
-            np.linspace(0, self.size[2], self.distribution.shape[2]),
+            np.linspace(0, self.size[0], self.distribution.shape[0], endpoint=False),
+            np.linspace(0, self.size[1], self.distribution.shape[1], endpoint=False),
+            np.linspace(0, self.size[2], self.distribution.shape[2], endpoint=False),
             indexing = 'ij'
         )
-        self.coordinates_table = np.stack((xs, ys, zs), axis=3).reshape(-1, 3)
+        coordinates = np.stack((xs, ys, zs), axis=3).reshape(-1, 3)
+        probability = self.distribution.ravel()
+        indices = probability.nonzero()[0]
+        self.emission_table = [coordinates[indices], probability[indices]]
 
     @property
     def activity(self):
@@ -77,13 +80,10 @@ class Source:
         self.rng.bit_generator.state['state'] = rng_state
 
     def generate_coordinates(self, n):
-        p = self.distribution.ravel()
-        indices = p.nonzero()[0]
-        p = p[indices]
-        indices = self.rng.choice(indices, n, p=p)
-        coordinates = self.coordinates_table[indices]
-        dcoordinates = self.rng.uniform(0, self.voxel_size, coordinates.shape)
-        coordinates += dcoordinates
+        coordinates = self.emission_table[0]
+        probability = self.emission_table[1]
+        coordinates = self.rng.choice(coordinates, n, p=probability)
+        coordinates += self.rng.uniform(0., self.voxel_size, coordinates.shape)
         if self._rotated:
             coordinates -= self.rotation_center
             np.matmul(coordinates, self.R, out=coordinates)
