@@ -10,7 +10,7 @@ class Space:
         self.size = np.asarray(size)    #cm
         self.material = material
         self.subjects = subjects
-        self.ray_method = 'ray_marching'
+        self.ray_method = 'ray_casting'
         self.epsilon = 10**(-4)
         self.args = [
             'ray_method',
@@ -141,9 +141,9 @@ class Subject:
 
     def _culculate_equation_coeffieients(self):
         normals = np.asarray([
-            [-1.,  0.,  0.],
-            [ 0., -1.,  0.],
-            [ 0.,  0., -1.],
+            [ 1.,  0.,  0.],
+            [ 0.,  1.,  0.],
+            [ 0.,  0.,  1.],
             [ 1.,  0.,  0.],
             [ 0.,  1.,  0.],
             [ 0.,  0.,  1.],
@@ -167,11 +167,11 @@ class Subject:
         if not local:
             coordinates = self.convert_to_local_coordinates(coordinates)
             direction = self.convert_to_local_direction(direction)
-        inside = self.inside(coordinates)
-        distance = -matmul(coordinates, self.normals)
-        distance += self.D
+        distance = self.D - matmul(coordinates, self.normals)
         distance /= matmul(direction, self.normals)
-        distance[distance <= 0] = inf
+        negative_distance = distance < 0
+        inside = (negative_distance.sum(axis=1) == 3).nonzero()[0]
+        distance[negative_distance] = inf
         distance = distance.min(axis=1)
         return distance, inside
 
