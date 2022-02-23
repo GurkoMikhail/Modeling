@@ -97,15 +97,17 @@ class Subject:
         self.size = np.asarray(size)
         self.material = material
         self.rotated = False
-        if rotation_angles is not None:
-            self.rotate(rotation_angles, rotation_center)
+        self.rotate(rotation_angles, rotation_center)
         self._culculate_primitive_size()
         self._culculate_equation_coeffieients()
         self._find_heaviest_material()
         self.complex = False
 
     def rotate(self, rotation_angles, rotation_center=None):
-        self.rotated = True
+        if rotation_angles is not None:
+            self._rotated = True
+        else:
+            rotation_angles = [0., 0., 0.]
         self.rotation_angles = np.asarray(rotation_angles)
         if rotation_center is None:
             rotation_center = np.asarray(self.size/2)

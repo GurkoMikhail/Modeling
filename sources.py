@@ -33,12 +33,14 @@ class Source:
         self.timer = 0.
         self._rotated = False
         self._generate_emission_table()
-        if rotation_angles is not None:
-            self.rotate(rotation_angles, rotation_center)
+        self.rotate(rotation_angles, rotation_center)
         self.rng = np.random.default_rng()
 
     def rotate(self, rotation_angles, rotation_center=None):
-        self._rotated = True
+        if rotation_angles is not None:
+            self._rotated = True
+        else:
+            rotation_angles = [0., 0., 0.]
         self.rotation_angles = np.asarray(rotation_angles)
         if rotation_center is None:
             rotation_center = np.asarray(self.size/2)
