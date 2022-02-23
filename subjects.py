@@ -10,7 +10,7 @@ class Space:
         self.size = np.asarray(size)    #cm
         self.material = material
         self.subjects = subjects
-        self.ray_method = 'ray_casting'
+        self.ray_method = 'ray_marching'
         self.epsilon = 10**(-4)
         self.args = [
             'ray_method',
