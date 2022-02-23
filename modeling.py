@@ -110,7 +110,7 @@ class Modeling(Process):
                     self.save_modeling_data()
                     print(f'\tReal time passed: {finish_time} seconds')
                     start_time = time()
-                queue.task_done()
+                # queue.task_done()
         else:
             print(f'{self.name} already finished!')
 
@@ -307,7 +307,7 @@ class ParticleFlow(Process):
             'Step': self.step
             }
         self.queue.put(data)
-        self.queue.join()
+        # self.queue.join()
 
     def next_step(self, particles, interaction):
         interaction_data = interaction.processing()
