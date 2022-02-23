@@ -171,7 +171,6 @@ class Subject:
         distance = -matmul(coordinates, self.normals)
         distance += self.D
         distance /= matmul(direction, self.normals)
-        distance[inside] *= -1
         distance[distance <= 0] = inf
         distance = distance.min(axis=1)
         return distance, inside
