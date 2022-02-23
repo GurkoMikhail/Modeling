@@ -128,6 +128,7 @@ class Subject:
             primitive_size[1, 0], primitive_size[1, 1] = nonzero[1].min(), nonzero[1].max()
             primitive_size[2, 0], primitive_size[2, 1] = nonzero[2].min(), nonzero[2].max()
             primitive_size *= self.voxel_size
+            primitive_size[:, 1] += self.voxel_size
         self.primitive_size = primitive_size
 
     def _find_heaviest_material(self):
