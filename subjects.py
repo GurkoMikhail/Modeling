@@ -37,24 +37,22 @@ class Space:
         material = np.full_like(subject_index, self.material)
         complex_subject = np.zeros_like(subject_index, dtype=bool)
         for index, subject in enumerate(self.subjects, 1):
-            indices = (subject_index == index).nonzero()[0]
-            material[indices] = subject.heaviest_material
-            complex_subject[indices] = subject.complex
-        complex_subject = complex_subject.nonzero()[0]
+            matching = subject_index == index
+            material[matching] = subject.heaviest_material
+            complex_subject[matching] = subject.complex
         return material, complex_subject
 
-    def outside(self, coordinates):
-        """ Список непопавших внутрь пространства"""
-        outside = (coordinates > self.size) + (coordinates < 0)
-        indices = outside.any(axis=1).nonzero()[0]
-        return indices
+    def outside(self, coordinates, local=True):
+        """ Список непопавших внутрь """
+        if not local:
+            coordinates = self.convert_to_local_coordinates(coordinates)
+        outside = (coordinates > self.size) + (coordinates < 0.)
+        return outside.any(axis=1)
 
-    def inside(self, coordinates):
-        """ Список попавших внутрь пространства """
-        inside = (coordinates <= self.size)*(coordinates >= 0)
-        indices = inside.all(axis=1).nonzero()[0]
-        return indices
-
+    def inside(self, coordinates, local=True):
+        """ Список попавших внутрь """
+        return ~self.outside(coordinates, local)
+        
     def get_material(self, coordinates):
         """ Получить список веществ """
         material = np.full(coordinates.shape[0], self.material, uint8)
@@ -170,7 +168,7 @@ class Subject:
         distance = self.D - matmul(coordinates, self.normals)
         distance /= matmul(direction, self.normals)
         negative_distance = distance < 0
-        inside = (negative_distance.sum(axis=1) == 3).nonzero()[0]
+        inside = negative_distance.sum(axis=1) == 3
         distance[negative_distance] = inf
         distance = distance.min(axis=1)
         return distance, inside
@@ -192,24 +190,17 @@ class Subject:
             matmul(direction, self.R, out=direction)
         return direction
 
+    def outside(self, coordinates, local=True):
+        """ Список непопавших внутрь """
+        if not local:
+            coordinates = self.convert_to_local_coordinates(coordinates)
+        outside = (coordinates > self.primitive_size[:, 1]) + (coordinates < self.primitive_size[:, 0])
+        return outside.any(axis=1)
+
     def inside(self, coordinates, local=True):
         """ Список попавших внутрь """
-        if not local:
-            coordinates = self.convert_to_local_coordinates(coordinates)
-        inside = (coordinates <= self.primitive_size[:, 1])*(coordinates >= self.primitive_size[:, 0])
-        indices = inside.all(axis=1).nonzero()[0]
-        return indices
+        return ~self.outside(coordinates, local)
         
-    def outside(self, coordinates, local=True):
-        """ Список попавших внутрь """
-        if not local:
-            coordinates = self.convert_to_local_coordinates(coordinates)
-        primitive_size0 = self.primitive_size[:, 0].reshape(1, 3, 1)
-        primitive_size1 = self.primitive_size[:, 1].reshape(1, 3, 1)
-        outside = (coordinates > primitive_size1) + (coordinates < primitive_size0)
-        indices = outside.any(axis=1).nonzero()
-        return indices
-
     def get_material_indices(self, coordinates, local=True):
         """ Получить индексы материала """
         if not local:
@@ -279,7 +270,7 @@ class Collimator(Subject):
         collimated = (coordinates[:, 0] <= a*d)*(a*coordinates[:, 1] + coordinates[:, 0]/4 <= a*d/2)
         coordinates = abs(coordinates[~collimated] - corner)
         collimated[~collimated] = (coordinates[:, 0] <= a*d)*(a*coordinates[:, 1] + coordinates[:, 0]/4 <= a*d/2)
-        return collimated.nonzero()[0]
+        return collimated
 
     def get_material_indices(self, coordinates, local=True):
         material = super().get_material_indices(coordinates, local)

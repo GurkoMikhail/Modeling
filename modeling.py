@@ -287,22 +287,18 @@ class ParticleFlow(Process):
         self.daemon = True
 
     def off_the_solid_angle(self, direction):
-        if self.solid_angle is None:
-            return np.array([], dtype=int)
         vector, angle = self.solid_angle
         cos_alpha = vector[0]*direction[:, 0]
         cos_alpha += vector[1]*direction[:, 1]
         cos_alpha += vector[2]*direction[:, 2]
-        indices = (cos_alpha <= cos(angle)).nonzero()[0]
-        return indices
+        return cos_alpha <= cos(angle)
 
     def invalid_particles(self, particles):
-        indices = []
-        indices.append((particles.energy <= self.min_energy).nonzero()[0])
-        indices.append(self.space.outside(particles.coordinates))
-        indices.append(self.off_the_solid_angle(particles.direction))
-        indices = np.concatenate(indices)
-        return indices
+        result = particles.energy <= self.min_energy
+        result += self.space.outside(particles.coordinates)
+        if self.solid_angle is not None:
+            result += self.off_the_solid_angle(particles.direction)
+        return result.nonzero()[0]
 
     def send_data(self, data):
         data = {

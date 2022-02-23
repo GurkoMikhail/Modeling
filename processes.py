@@ -46,16 +46,16 @@ class Interaction:
     def get_processes_lac(self, materials, energy):
         lac_out = np.zeros((len(self.processes), energy.size))
         for material in np.unique(materials):
-            indices = (materials == material).nonzero()[0]
+            matching = materials == material
             for i, process in enumerate(self.processes):
-                lac_out[i, indices] = process.lacs[material](energy[indices])
+                lac_out[i, matching] = process.lacs[material](energy[matching])
         return lac_out
 
     def get_total_lac(self, materials, energy):
         total_lac = np.empty_like(energy)
         for material in np.unique(materials):
-            indices = (materials == material).nonzero()[0]
-            total_lac[indices] = self.lacs[material](energy[indices])
+            matching = materials == material
+            total_lac[matching] = self.lacs[material](energy[matching])
         return total_lac
 
     def get_free_path(self, total_lac):
