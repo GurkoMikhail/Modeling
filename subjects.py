@@ -23,15 +23,15 @@ class Space:
                 
     def path_processing(self, coordinates, direction):
         """ Алгоритм определения объекта местонахождения и длины пути частицы """
-        path_length = np.full((coordinates.shape[0], ), inf)
-        current_subject = np.zeros_like(path_length, dtype=uint8)
+        distance = np.full((len(self.subjects), coordinates.shape[0]), inf)
+        current_subject = np.zeros(coordinates.shape[0], dtype=uint8)
         for subject_index, subject in enumerate(self.subjects, 1):
-            distance, inside_subject = getattr(subject, self.ray_method)(coordinates, direction)
+            distanceToSubject, inside_subject = getattr(subject, self.ray_method)(coordinates, direction)
             current_subject[inside_subject] = subject_index
-            intersectional = (path_length > distance).nonzero()[0]
-            path_length[intersectional] = distance[intersectional]
-        path_length += self.epsilon
-        return current_subject, path_length
+            distance[subject_index - 1] = distanceToSubject
+        distance = distance.min(axis=0)
+        distance += self.epsilon
+        return current_subject, distance
 
     def get_material_of_subject(self, subject_index):
         material = np.full_like(subject_index, self.material)
