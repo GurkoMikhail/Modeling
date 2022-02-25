@@ -1,7 +1,7 @@
-from processes import CoherentScattering
 import numpy as np
 from scipy.interpolate import interp1d
 from h5py import File
+from hepunits import*
 
 class Materials:
 
@@ -27,9 +27,6 @@ class Materials:
         for material, index in self.indices_dict.items():
             self.materials_dict.update({index: material})
 
-    def construct_table(self, indices_dict):
-        pass
-
     def select_atom(self, material):
         Z = self.table[material]
         return Z
@@ -45,22 +42,22 @@ class Materials:
             process_lac = {}
             for material, index in self.indices_dict.items():
                 materialGroup = lacsGroup[material]
-                energy = np.array(materialGroup['Energy'])*10**6
+                energy = np.array(materialGroup['Energy'])
                 max_energy_index = np.searchsorted(energy, self.max_energy, side='right') + 1
                 energy = energy[:max_energy_index]
                 lac = np.array(materialGroup[self.processes_names[process.name]][:max_energy_index])
-                process_lac.update({index: interp1d(energy, lac)})
+                process_lac.update({index: interp1d(energy, lac/cm)})
             lac_funtions.update({process.name: process_lac})
         process_lac = {}
         for material, index in self.indices_dict.items():
             materialGroup = lacsGroup[material]
-            energy = np.array(materialGroup['Energy'])*10**6
+            energy = np.array(materialGroup['Energy'])
             max_energy_index = np.searchsorted(energy, self.max_energy, side='right') + 1
             energy = energy[:max_energy_index]
             total_lac = 0
             for process in processes:
                     total_lac += np.array(materialGroup[self.processes_names[process.name]][:max_energy_index])
-            process_lac.update({index: interp1d(energy, total_lac)})
+            process_lac.update({index: interp1d(energy, total_lac/cm)})
         lac_funtions.update({'Total': process_lac})
         lacsFile.close()
         return lac_funtions

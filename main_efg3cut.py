@@ -6,12 +6,13 @@ from detectors import SiemensSymbiaTSeries3_8
 from modeling import Modeling
 from modelingManagers import SourceManager
 from materials import Materials
+from hepunits import*
 
 
 def main():
-    angles = np.linspace(-np.pi/4, 3*np.pi/4, 32)
-    projection_time = 15
-    pause_time = 1.
+    angles = np.linspace(-pi/4, 3*pi/4, 32)
+    projection_time = 15.*s
+    pause_time = 1.*s
 
     materials = {
         'Compounds and mixtures/Air, Dry (near sea level)':         0,
@@ -23,17 +24,17 @@ def main():
     }
 
     space = Space(
-        size=(51.2, 40., 60.),
+        size=(51.2*cm, 40.*cm, 60.*cm),
         material=0
         )
 
     detector = SiemensSymbiaTSeries3_8(
-        coordinates=(0., 0., 0),
+        coordinates=(0.*cm, 0.*cm, 0.*cm),
         size=space.size[:2]
         )
 
     collimator = SiemensSymbiaTSeriesLEHR(
-        coordinates=(detector.coordinates[0], detector.coordinates[1], detector.size[2] + 0.5),
+        coordinates=(detector.coordinates[0], detector.coordinates[1], detector.size[2] + 0.5*cm),
         size=detector.size[:2]
         )
 
@@ -43,12 +44,12 @@ def main():
 
     source = SourceManager().efg3cut(
         coordinates=phantom.coordinates,
-        activity=300*10**6,
+        activity=300*MBq,
         )
 
-    space.add_subject(phantom)    
+    space.add_subject(phantom)  
+    space.add_subject(collimator)  
     space.add_subject(detector)
-    space.add_subject(collimator)
 
     materials = Materials(materials, max_energy=source.energy)
 
@@ -64,8 +65,8 @@ def main():
             materials,
             stop_time=source.timer + projection_time,
             particles_number=10**8,
-            flow_number=8,
-            file_name=f'efg3cut/{round(np.rad2deg(angle), 1)} deg.hdf',
+            flow_number=10,
+            file_name=f'efg3cut/{round(angle/deg, 1)} deg.hdf',
             iteraction_buffer=10**4,
             subject=detector
             )

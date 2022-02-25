@@ -2,6 +2,7 @@ import g4compton
 import g4coherent
 import numpy as np
 from numpy import pi, cos
+from hepunits import*
 
 
 class Interaction:
@@ -12,14 +13,13 @@ class Interaction:
         self.space = space
         self.materials = materials
         self.processes = []
+        self.rng = np.random.default_rng()
         for process in self.particles.processes:
-            self.processes.append(processes[process](self.particles, self.materials))
+            self.processes.append(processes[process](self.particles, self.materials, self.rng))
         lac_funtions = self.materials.construct_lac_funtions(self.processes)
         self.lacs = lac_funtions['Total']
         for process in self.processes:
             process.lacs = lac_funtions[process.name]
-        self.rng_choose = np.random.default_rng()
-        self.rng_free_path = np.random.default_rng()
 
     def processing(self):
         subject_index, distance = self.space.path_processing(
@@ -59,12 +59,12 @@ class Interaction:
         return total_lac
 
     def get_free_path(self, total_lac):
-        free_path = self.rng_free_path.exponential(1/total_lac, total_lac.size)
+        free_path = self.rng.exponential(1/total_lac, total_lac.size)
         return free_path
 
     def choose_interaction(self, probabilities):
         indices = []
-        rnd = self.rng_choose.random(probabilities[0].size)
+        rnd = self.rng.random(probabilities[0].size)
         p0 = 0
         for probability in probabilities:
             p1 = p0 + probability
@@ -91,10 +91,11 @@ class Interaction:
 class Process:
     """ Класс процесса """
 
-    def __init__(self, particles, materials):
+    def __init__(self, particles, materials, rng):
         """ Конструктор процесса """
         self.particles = particles
         self.materials = materials
+        self.rng = rng
 
     @property
     def name(self):
@@ -130,19 +131,19 @@ class PhotoelectricEffect(Process):
 class CoherentScattering(Process):
     """ Класс когерентного рассеяния """
     
-    def __init__(self, particles, materials):
-        super().__init__(particles, materials)
-        self.rng_phi = np.random.default_rng()
+    def __init__(self, particles, materials, rng):
+        super().__init__(particles, materials, rng)
+        self.theta_generator = g4coherent.initialize(self.rng)
 
     def get_theta(self, interacted, materials):
         energy = self.particles.energy[interacted]
         Z = self.materials.select_atom(materials)
-        theta = g4coherent.generation_theta(energy, Z)
+        theta = self.theta_generator(energy, Z)
         return theta
 
     def get_phi(self, interacted):
         """ Получить угол рассеяния - phi """
-        phi = pi*(self.rng_phi.random(interacted.size)*2 - 1)
+        phi = pi*(self.rng.random(interacted.size)*2 - 1)
         return phi
 
     def apply(self, interacted, materials):
@@ -158,22 +159,21 @@ class CoherentScattering(Process):
 class ComptonScattering(CoherentScattering):
     """ Класс эффекта Комптона """
 
-    def get_theta(self, interacted):
-        """ Получить угол рассеяния - theta """
-        theta = g4compton.generation_theta(self.particles.energy[interacted])
-        return theta
+    def __init__(self, particles, materials, rng):
+        super().__init__(particles, materials, rng)
+        self.theta_generator = g4compton.initialize(self.rng)
 
     def culculate_energy_change(self, theta, interacted):
         """ Вычислить изменения энергий """
         energy = self.particles.energy[interacted]
-        k = energy/mec2
+        k = energy/electron_mass_c2
         k1_cos = k*(1 - cos(theta))
         energy_change = energy*k1_cos/(1 + k1_cos)
         return energy_change
 
     def apply(self, interacted, materials):
         """ Применить эффект Комптона """
-        theta = self.get_theta(interacted)
+        theta = self.get_theta(interacted, materials)
         phi = self.get_phi(interacted)
         energy_change = self.culculate_energy_change(theta, interacted)
         self.particles.rotate(theta, phi, interacted)
@@ -189,7 +189,7 @@ class PairProduction(Process):
     pass
 
 
-mec2 = 510998.9461          #eV
+electron_mass_c2 = 0.510998910*MeV
 
 processes = {
     'PhotoelectricEffect': PhotoelectricEffect,

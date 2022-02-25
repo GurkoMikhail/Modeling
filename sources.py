@@ -1,6 +1,7 @@
 import numpy as np
-from numpy import load, cos, sin, log, sqrt, pi
+from numpy import load, cos, sin, log, sqrt
 from particles import Photons
+from hepunits import*
 
 
 class Source:
@@ -134,7 +135,7 @@ class PointSource(Source):
 
     def __init__(self, coordinates, activity, energy):
         distribution = [[[1.]]]
-        voxel_size = 0.1
+        voxel_size = 1.*mm
         radiation_type = 'Gamma'
         half_life = 6*60*60
         rotation_angles = None
@@ -157,8 +158,8 @@ class Тс99m_MIBI(Source):
 
     def __init__(self, coordinates, activity, distribution, voxel_size, rotation_angles=None, rotation_center=None):
         radiation_type = 'Gamma'
-        energy = 140.5*10**3
-        half_life = 6*60*60
+        energy = 140.5*keV
+        half_life = 6.*hour
         super().__init__(coordinates, activity, distribution, voxel_size, radiation_type, energy, half_life, rotation_angles, rotation_center)
 
 
@@ -191,7 +192,7 @@ class efg3(SourcePhantom):
 
     def __init__(self, coordinates, activity, rotation_angles=None, rotation_center=None):
         phantom_name = 'efg3'
-        voxel_size = 0.4
+        voxel_size = 4.*mm
         super().__init__(coordinates, activity, phantom_name, voxel_size, rotation_angles, rotation_center)
         
 
@@ -206,7 +207,7 @@ class efg3cut(SourcePhantom):
 
     def __init__(self, coordinates, activity, rotation_angles=None, rotation_center=None):
         phantom_name = 'efg3cut'
-        voxel_size = 0.4
+        voxel_size = 4.*mm
         super().__init__(coordinates, activity, phantom_name, voxel_size, rotation_angles, rotation_center)
 
 
@@ -221,6 +222,6 @@ class efg3cutDefect(SourcePhantom):
 
     def __init__(self, coordinates, activity, rotation_angles=None, rotation_center=None):
         phantom_name = 'efg3cutDefect'
-        voxel_size = 0.4
+        voxel_size = 4.*mm
         super().__init__(coordinates, activity, phantom_name, voxel_size, rotation_angles, rotation_center)
 

@@ -1,5 +1,6 @@
 from h5py import File
 from pathlib import Path
+from hepunits import*
 import numpy as np
 from numpy import cos
 from particles import Photons
@@ -34,7 +35,7 @@ class Modeling(Process):
         self.subject = None
         self.save_emission_data = True
         self.save_dose_data = True
-        self.distribution_voxel_size = 0.4
+        self.distribution_voxel_size = 4.*mm
         self.modeling_data = {
             'Interactions data': {
                 'Coordinates': [],
@@ -87,7 +88,7 @@ class Modeling(Process):
         print(f'{self.name} started')
         source_state = self.check_progress_in_file()
         self.source.set_state(*source_state)
-        print(f'\tSource timer: {self.source.timer}')
+        print(f'\tSource timer: {self.source.timer/s} s')
         if self.source.timer < self.stop_time:
             self.save_modeling_parameters()
             flows, queue = self.generate_flows()
@@ -235,7 +236,7 @@ class Modeling(Process):
                 'Events number': 0
             }
             print(f'{self.name} generated {events_number} events\n'
-                + f'\tSource timer: {source_timer} seconds'
+                + f'\tSource timer: {source_timer/s} s'
                 )
 
     def save_modeling_parameters(self):
@@ -283,7 +284,7 @@ class ParticleFlow(Process):
         self.solid_angle = solid_angle
         self.queue = queue
         self.step = 1
-        self.min_energy = 0
+        self.min_energy = 1.*keV
         self.daemon = True
 
     def off_the_solid_angle(self, direction):

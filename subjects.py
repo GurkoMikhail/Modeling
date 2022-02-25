@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import cos, sin, sqrt, abs, mod, matmul, uint8, inf
+from hepunits import*
 
 
 class Space:
@@ -11,7 +12,7 @@ class Space:
         self.material = material
         self.subjects = subjects
         self.ray_method = 'ray_casting'
-        self.epsilon = 10**(-4)
+        self.epsilon = 1.*micrometer
         self.args = [
             'ray_method',
             'epsilon'
@@ -94,7 +95,7 @@ class Subject:
         self.coordinates = np.asarray(coordinates)
         self.size = np.asarray(size)
         self.material = material
-        self.rotated = False
+        self._rotated = False
         self.rotate(rotation_angles, rotation_center)
         self._culculate_primitive_size()
         self._culculate_equation_coeffieients()
@@ -111,12 +112,12 @@ class Subject:
             rotation_center = np.asarray(self.size/2)
         self.rotation_center = rotation_center
         alpha, beta, gamma = self.rotation_angles
-        self.R = np.asarray([
+        R = np.asarray([
             [cos(alpha)*cos(beta),  cos(alpha)*sin(beta)*sin(gamma) - sin(alpha)*cos(gamma),    cos(alpha)*sin(beta)*cos(gamma) + sin(alpha)*sin(gamma) ],
             [sin(alpha)*cos(beta),  sin(alpha)*sin(beta)*sin(gamma) + cos(alpha)*cos(gamma),    sin(alpha)*sin(beta)*cos(gamma) - cos(alpha)*sin(gamma) ],
             [-sin(beta),            cos(beta)*sin(gamma),                                       cos(beta)*cos(gamma)                                    ]
         ])
-        self.R = self.R.T
+        self.R = R.T
 
     def _culculate_primitive_size(self):
         primitive_size = np.zeros((3, 2), dtype=float)
@@ -177,7 +178,7 @@ class Subject:
         """ Преобразовать в локальные координаты """
         coordinates = coordinates.copy()
         coordinates -= self.coordinates
-        if self.rotated:
+        if self._rotated:
             coordinates -= self.rotation_center
             matmul(coordinates, self.R, out=coordinates)
             coordinates += self.rotation_center
@@ -186,7 +187,7 @@ class Subject:
     def convert_to_local_direction(self, direction):
         """ Преобразовать направление в локальное """
         direction = direction.copy()
-        if self.rotated:
+        if self._rotated:
             matmul(direction, self.R, out=direction)
         return direction
 
