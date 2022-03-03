@@ -26,26 +26,26 @@ def main():
     space = Space(
         size=(51.2*cm, 40.*cm, 60.*cm),
         material=0
-        )
+    )
 
     detector = SiemensSymbiaTSeries3_8(
         coordinates=(0.*cm, 0.*cm, 0.*cm),
         size=space.size[:2]
-        )
+    )
 
     collimator = SiemensSymbiaTSeriesLEHR(
         coordinates=(detector.coordinates[0], detector.coordinates[1], detector.size[2] + 0.5*cm),
         size=detector.size[:2]
-        )
+    )
 
     phantom = ae3cut(
-        coordinates=(collimator.coordinates[0], collimator.coordinates[1], collimator.size[2]),
-        )
+        coordinates=(collimator.coordinates[0], collimator.coordinates[1], collimator.coordinates[1] + collimator.size[2]),
+    )
 
     source = SourceManager().efg3cutDefect(
         coordinates=phantom.coordinates,
         activity=300*MBq,
-        )
+    )
 
     space.add_subject(phantom)  
     space.add_subject(collimator)  
