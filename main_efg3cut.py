@@ -39,7 +39,7 @@ def main():
     )
 
     phantom = ae3cut(
-        coordinates=(collimator.coordinates[0], collimator.coordinates[1], collimator.coordinates[1] + collimator.size[2]),
+        coordinates=(collimator.coordinates[0], collimator.coordinates[1], collimator.coordinates[2] + collimator.size[2]),
     )
 
     source = SourceManager().efg3cut(
