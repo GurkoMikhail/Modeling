@@ -14,8 +14,11 @@ def main():
 
     materials = {
         'Compounds and mixtures/Air, Dry (near sea level)':         0,
-        'Compounds and mixtures/Sodium Iodide':                     1,
-        'Elemental media/Pb':                                       2,
+        'Compounds and mixtures/Lung':                              1,
+        'Compounds and mixtures/Tissue, Soft (ICRU-44)':            2,
+        'Compounds and mixtures/B-100 Bone-Equivalent Plastic':     3,
+        'Compounds and mixtures/Sodium Iodide':                     4,
+        'Elemental media/Pb':                                       5,
     }
 
     space = Space(
@@ -38,7 +41,7 @@ def main():
 
     materials = Materials(materials, max_energy=source.energy)
 
-    materials.table = np.array([7, 32, 82])
+    materials.table = np.array([7, 7, 7, 10, 32, 82])
 
     for distance in distances:
         source = SourceManager().PointSource(
