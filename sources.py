@@ -137,11 +137,13 @@ class PointSource(Source):
         distribution = [[[1.]]]
         voxel_size = 1.*mm
         radiation_type = 'Gamma'
-        half_life = 6*60*60
+        half_life = 6.*hour
         rotation_angles = None
         rotation_center = None
         super().__init__(coordinates, activity, distribution, voxel_size, radiation_type, energy, half_life, rotation_angles, rotation_center)
 
+    def generate_coordinates(self, n):
+        return np.full((n, 3), self.coordinates)
 
 class Тс99m_MIBI(Source):
     """
