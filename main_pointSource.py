@@ -43,7 +43,8 @@ def main():
     for distance in distances:
         source = SourceManager().PointSource(
             coordinates=(collimator.coordinates[0]/2, collimator.coordinates[1]/2, collimator.coordinates[2] + collimator.size[2] + distance),
-            activity=42*MBq
+            activity=42*MBq,
+            energy=140.5*keV
         )
         
         modeling = Modeling(
