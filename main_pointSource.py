@@ -45,7 +45,7 @@ def main():
 
     for distance in distances:
         source = SourceManager().PointSource(
-            coordinates=(collimator.coordinates[0]/2, collimator.coordinates[1]/2, collimator.coordinates[2] + collimator.size[2] + distance),
+            coordinates=(collimator.size[0]/2, collimator.size[1]/2, collimator.coordinates[2] + collimator.size[2] + distance),
             activity=42*MBq,
             energy=140.5*keV
         )
@@ -55,8 +55,8 @@ def main():
             source,
             materials,
             stop_time=source.timer + projection_time,
-            particles_number=10**8,
-            flow_number=8,
+            particles_number=10**6,
+            flow_number=1,
             file_name=f'PointSource/{distance/cm} cm.hdf',
             iteraction_buffer=10**4,
             subject=detector
