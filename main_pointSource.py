@@ -55,8 +55,8 @@ def main():
             source,
             materials,
             stop_time=source.timer + projection_time,
-            particles_number=10**6,
-            flow_number=1,
+            particles_number=10**8,
+            flow_number=8,
             file_name=f'PointSource/{distance/cm} cm.hdf',
             iteraction_buffer=10**4,
             subject=detector
