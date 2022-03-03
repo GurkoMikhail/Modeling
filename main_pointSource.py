@@ -9,7 +9,7 @@ from hepunits import*
 
 
 def main():
-    distances = np.array([0, 5, 10, 15, 20, 40, 60])*cm
+    distances = np.array([0, 5, 10, 15, 20, 40])*cm
     projection_time = 30.*s
 
     materials = {
@@ -33,12 +33,6 @@ def main():
         size=detector.size[:2]
     )
 
-    source = SourceManager().efg3cut(
-        coordinates=(collimator.coordinates[0], collimator.coordinates[1], collimator.size[2]),
-        activity=300*MBq,
-        energy=140.5*keV
-    )
-
     space.add_subject(collimator)  
     space.add_subject(detector)
 
@@ -58,7 +52,7 @@ def main():
             materials,
             stop_time=source.timer + projection_time,
             particles_number=10**8,
-            flow_number=10,
+            flow_number=8,
             file_name=f'PointSource/{distance/cm} cm.hdf',
             iteraction_buffer=10**4,
             subject=detector
