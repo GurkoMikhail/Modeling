@@ -39,7 +39,7 @@ def main():
     space.add_subject(collimator)  
     space.add_subject(detector)
 
-    materials = Materials(materials, max_energy=source.energy)
+    materials = Materials(materials, max_energy=140.5*keV)
 
     materials.table = np.array([7, 7, 7, 10, 32, 82])
 
